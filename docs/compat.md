@@ -46,6 +46,37 @@ checkable on a real device.
 This is also why the desktop matrix is necessary but not sufficient, and why the
 `/compat` page still exists alongside the automated tests.
 
+## The second real-device finding: real Safari does not do the automatic mapping at all
+
+Checking `/compat` again on the same iPhone XR (Safari 18.7) after the backslant fix landed
+surfaced a second, distinct bug: the "SHIPPED" row (`font-style: italic` against the bare
+`font-style: oblique` face) rendered **upright**, and so did both halves of the hazard demo —
+including the left half, which has no ancestor pin and should be the unambiguous "this works" case.
+
+**Cause.** Real Safari 18.7 does not perform the automatic `font-style` → `slnt` mapping onto a
+variable font at all, pin or no pin. This is not the ancestor-pin hazard recurring — it is a
+different, simpler failure: there is no automatic mapping happening for this technique to be
+blocked. Playwright's bundled WebKit is a newer, different build that does perform the mapping (see
+the Results table below, "font-style: italic against a bare `oblique` face" measures correct in all
+three engines there), which is exactly the "Playwright's WebKit is not Safari" caveat this file
+already carries, now confirmed the hard way rather than just asserted. This is the same class of
+cross-engine divergence the CSSWG's ongoing `ital`/`font-style` interaction discussion is about — see
+"Still to test" below for the tracked upstream issues.
+
+**Fix.** Stop depending on the automatic mapping as the _mechanism_ for correctness. Set
+`font-variation-settings: 'slnt' -11` directly at the use site — the technique this file's Results
+table already measured as correct in all three engines with no automatic translation involved, so
+there is nothing for any engine's support (or lack of it) to disagree about. It also has a second
+advantage discovered alongside the ancestor-pin hazard: an element's own explicit declaration always
+wins over an inherited one, so this technique is immune to that hazard too, on every engine,
+including real Safari. Confirmed with `slant.browser.test.ts`, "an explicit slnt at the use site
+survives an ancestor pin, unlike italic".
+
+`font-style: italic` is kept as a semantic hint (useful to assistive technology and print
+stylesheets) but is no longer the thing consumers should rely on for correct rendering — `/compat`'s
+table and hazard demo were both updated to say so explicitly, and to demonstrate the explicit-`slnt`
+technique surviving the same pinned-ancestor hazard that defeats `font-style: italic`.
+
 ## Why this needed measuring
 
 Cairo has no italic masters. Its "italic" is just `slnt -11`, so every way of
@@ -65,27 +96,42 @@ Shear measured on a 200px `I`. Correct = **0.194**. Synthetic skew is 14° = 0.2
 
 **Read this table as "the technique in isolation," not "what actually
 renders on the page."** Every row is measured on a specimen with no ancestor
-CSS around it. That is precisely why the "shipped" row below can measure
-0.194/0.193/0.194 here and _still_ have rendered upright on `/compat` for a
-while — the earlier `html`-level `slnt` pin (see the section above) wasn't a
-property of the technique, it was an ancestor discovered nowhere in this
-table. If a shipped technique ever looks broken on the actual page despite
-this table saying it's fine, suspect an ancestor, not this table.
+CSS around it, and only in the three engines this repo's test suite can drive.
+That is precisely why the `font-style: oblique` + `font-style: italic` row
+below can measure 0.194/0.193/0.194 here and _still_ render upright both under
+an `html`-level `slnt` pin (see the section above) and, separately, on real
+Safari with no pin at all (see "The second real-device finding" above) —
+neither is a property this table can see: one is an ancestor, the other is an
+engine this table's tooling cannot reach. If a technique that measures fine
+here ever looks broken on the actual page or a real device, suspect one of
+those two, not this table.
 
-| Technique                                                       |  Chromium |    WebKit |   Firefox | Verdict                    |
-| --------------------------------------------------------------- | --------: | --------: | --------: | -------------------------- |
-| `font-variation-settings: 'slnt' -11` at use site               |     0.194 |     0.193 |     0.194 | ✅ works everywhere        |
-| **`@font-face { font-style: oblique }` + `font-style: italic`** | **0.194** | **0.193** | **0.194** | ✅ **shipped**             |
-| `@font-face { font-style: oblique 0deg 11deg }` + `italic`      |     0.444 |     0.249 |     0.194 | ❌ broken in 2 of 3        |
-| …same, plus `font-synthesis: none`                              |     0.194 |     0.193 |     0.194 | ✅ but needs use-site CSS  |
-| `font-style: oblique 11deg` at use site, normal face            |     0.000 |     0.000 |     0.194 | ❌ ignored outside Firefox |
-| `@font-face { font-variation-settings: 'slnt' -11 }` descriptor |     0.194 | **0.000** |     0.194 | ❌ silently dead in WebKit |
-| `font-style: italic` on a normal-only face                      |     0.249 |     0.249 |     0.249 | synthetic skew, no axis    |
-| `italic` + `slnt -11` on a normal-only face                     |     0.444 |     0.249 |     0.249 | ❌ double-slant            |
-| GPOS kerning toggles via `font-kerning`                         |        ✅ |        ✅ |        ✅ |                            |
-| `slnt` changes advance width                                    |        no |        no |        no | why pixels are needed      |
+| Technique                                                       | Chromium |    WebKit | Firefox | Verdict                               |
+| --------------------------------------------------------------- | -------: | --------: | ------: | ------------------------------------- |
+| `font-variation-settings: 'slnt' -11` at use site               |    0.194 |     0.193 |   0.194 | ✅ **recommended**                    |
+| `@font-face { font-style: oblique }` + `font-style: italic`     |    0.194 |     0.193 |   0.194 | ⚠️ correct here, fails on real Safari |
+| `@font-face { font-style: oblique 0deg 11deg }` + `italic`      |    0.444 |     0.249 |   0.194 | ❌ broken in 2 of 3                   |
+| …same, plus `font-synthesis: none`                              |    0.194 |     0.193 |   0.194 | ✅ but needs use-site CSS             |
+| `font-style: oblique 11deg` at use site, normal face            |    0.000 |     0.000 |   0.194 | ❌ ignored outside Firefox            |
+| `@font-face { font-variation-settings: 'slnt' -11 }` descriptor |    0.194 | **0.000** |   0.194 | ❌ silently dead in WebKit            |
+| `font-style: italic` on a normal-only face                      |    0.249 |     0.249 |   0.249 | synthetic skew, no axis               |
+| `italic` + `slnt -11` on a normal-only face                     |    0.444 |     0.249 |   0.249 | ❌ double-slant                       |
+| GPOS kerning toggles via `font-kerning`                         |       ✅ |        ✅ |      ✅ |                                       |
+| `slnt` changes advance width                                    |       no |        no |      no | why pixels are needed                 |
 
 ## Decision
+
+**Consumers must set `font-variation-settings: 'slnt' -11` explicitly at the use site for italic
+Cairo — do not rely on `font-style: italic` alone.** See "The second real-device finding" above:
+real Safari 18.7 does not perform the automatic `font-style` → `slnt` mapping this relies on at all,
+confirmed on an iPhone XR. `font-style: italic` can still be written alongside it as a harmless
+semantic hint, but the explicit `font-variation-settings` value is what makes rendering correct, on
+every engine, unconditionally.
+
+The paragraphs below are a separate, still-valid decision about the `@font-face` **descriptor**
+`font-src/css.py` emits — they answer "what should the face declare," not "what should a consumer
+write." Both decisions apply at once: a bare `oblique` descriptor at the face level, and an explicit
+`slnt` value at every use site.
 
 **Ship `font-style: oblique` — the bare keyword, no angle range.** It is the only
 `@font-face`-level technique that is correct in all three engines with no extra
@@ -149,6 +195,25 @@ Two findings worth carrying into Phase 2 and 3:
 
 ## Still to test
 
+- **Whether `font-style: oblique` (bare, no italic) succeeds on real Safari where `italic` fails.**
+  Per [CSS Fonts 4's font-style-matching algorithm](https://drafts.csswg.org/css-fonts-4/#font-style-matching),
+  `italic` and `oblique` are matched differently: `italic` goes through an italic-to-oblique fallback
+  step, while a bare `oblique` value matches a face's own `font-style: oblique` descriptor directly —
+  one less layer of indirection. Whether that difference matters on real Safari, or whether it fails
+  to map any `font-style` value onto `slnt` at all regardless of keyword, is genuinely unknown; added
+  as its own `/compat` row (`oblique-bare`) with an honest "untested" verdict rather than a guess.
+  Playwright measures it identically to `italic` in all three engines, so it can't answer this either.
+  If `oblique` alone turns out to work, that's the simpler, spec-literal fix — no explicit
+  `font-variation-settings` needed at every use site — rather than bypassing font-style matching.
+- **Whether real Safari ever adds the automatic `font-style` → `slnt` mapping.** Real, findable bug
+  reports exist for this exact gap — Chromium
+  [Issue 1064756](https://bugs.chromium.org/p/chromium/issues/detail?id=1064756), WebKit
+  [Bug 209565](https://bugs.webkit.org/show_bug.cgi?id=209565) — plus an active CSSWG mailing-list
+  thread on clarifying the `ital`/`font-style` interaction for variable fonts, so this is a live area
+  of spec and engine work, not a permanently stuck gap. No confirmed fix-landed version for real
+  Safari as of this writing. Practically this doesn't block anything: `slant.browser.test.ts` already
+  encodes the explicit-`slnt` technique as the one nothing here depends on the mapping for, so there
+  is nothing to "wait and revert" even if some future Safari starts supporting it.
 - `font-weight` range descriptors, and Fira Code's 300 default rendering Light
   when weight is unset.
 - `font-stretch: 75% 100%` vs `font-variation-settings: 'wdth'` for Plex.

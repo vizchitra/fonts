@@ -9,14 +9,15 @@
 	// `browsers.chromium/safari/firefox` are MEASURED, from
 	// slant.browser.test.ts, which runs these exact techniques through real
 	// engines on every `pnpm test` — docs/compat.md has the numbers. `ios` is
-	// NOT measured the same way: Playwright's WebKit is not an iPhone, and
-	// none of these five rows have been checked on the actual device yet
-	// (only the backslant section above has). It is a reasoned EXPECTATION —
-	// same as the safari column, since nothing here is known to differ on
-	// iOS specifically — not a confirmed result. Rendered with a `?` to keep
-	// that distinction visible rather than implying a device check that
-	// hasn't happened.
-	type Verdict = { chromium: boolean; safari: boolean; firefox: boolean; ios: boolean };
+	// NOT measured the same way: Playwright's WebKit is not an iPhone, so the
+	// safari and ios columns CAN diverge, and for the 'oblique-range' row they
+	// do — confirmed on a real iPhone XR (Safari 18.7), not just reasoned.
+	// `ios: null` means genuinely untested/unknown rather than a reasoned
+	// extrapolation — rendered as a neutral `?`, not a tick or cross, so an
+	// open question is never drawn as a pass. Check this file's row-level
+	// `expect` text either way before trusting a non-null value here too;
+	// some are still extrapolated from the safari column, not device-checked.
+	type Verdict = { chromium: boolean; safari: boolean; firefox: boolean; ios: boolean | null };
 
 	const SLANT_TESTS: {
 		id: string;
@@ -28,20 +29,45 @@
 	}[] = [
 		{
 			id: 'fvs-use-site',
-			title: 'font-variation-settings at the use site',
+			title: "font-variation-settings: 'slnt' -11 at the use site — RECOMMENDED",
 			css: "font-variation-settings: 'slnt' -11",
-			expect: 'Leans forward. This is the baseline — if this fails, nothing else matters.',
+			expect:
+				'Leans forward. This sets the axis directly — no automatic font-style mapping involved, ' +
+				'so nothing to disagree about across engines or versions. Confirmed on real Safari 18.7, ' +
+				'iPhone XR, immune to the ancestor-pin hazard below (unlike the row underneath). If this ' +
+				'fails, nothing else here matters.',
 			klass: 'm-usesite',
 			browsers: { chromium: true, safari: true, firefox: true, ios: true }
 		},
 		{
 			id: 'oblique-range',
-			title: 'font-style: italic against a bare `oblique` face — SHIPPED',
+			title: 'font-style: italic against a bare `oblique` face — DO NOT RELY ON ALONE',
 			css: 'font-style: italic  (face declares: font-style: oblique)',
 			expect:
-				'Leans ~11deg. Verified correct in Chromium, WebKit and Firefox. This is what fonts.css ships.',
+				'Leans ~11deg in Chromium, current WebKit and Firefox — but confirmed UPRIGHT on real ' +
+				'Safari 18.7 (iPhone XR): it does not perform this automatic font-style -> slnt mapping ' +
+				'at all, even with no ancestor pin in the way. Playwright’s WebKit is a different, ' +
+				'newer build and does not reproduce this — this is a real engine you can only catch by ' +
+				'hand, not in this repo’s automated matrix. font-style: italic is fine as a semantic ' +
+				'hint; do not depend on it for correct rendering. Use the row above instead.',
 			klass: 'm-oblique',
-			browsers: { chromium: true, safari: true, firefox: true, ios: true }
+			browsers: { chromium: true, safari: true, firefox: true, ios: false }
+		},
+		{
+			id: 'oblique-bare',
+			title:
+				'font-style: oblique (bare, no italic) against a bare `oblique` face — UNTESTED on iOS',
+			css: 'font-style: oblique  (face declares: font-style: oblique)',
+			expect:
+				'Per the CSS Fonts 4 font-style-matching algorithm, this is an exact match against the ' +
+				"face's own font-style: oblique descriptor — no italic-to-oblique fallback step, one " +
+				'less layer of indirection than the row above. Leans ~11deg in Chromium, current WebKit ' +
+				'and Firefox (same as italic — Playwright cannot tell these apart). Whether real ' +
+				"Safari's failure on the row above is specific to italic's fallback path, or is a " +
+				'blanket failure to map ANY font-style value onto slnt, is exactly what this row is ' +
+				'here to find out on a real device. Not yet checked.',
+			klass: 'm-oblique-bare',
+			browsers: { chromium: true, safari: true, firefox: true, ios: null }
 		},
 		{
 			id: 'oblique-explicit',
@@ -159,30 +185,45 @@
 
 <h2>Hazard demo: an ancestor pin kills italic (deliberately broken — not our CSS)</h2>
 <p class="hint">
-	The right half is expected to look upright, unlike the left — this is the exact bug an earlier
+	The middle half is expected to look upright, unlike the left — this is the exact bug an earlier
 	version of the iOS fix reintroduced by pinning <code>slnt</code> on <code>html</code>. If
-	<code>app.css</code> ever adds such a pin back, this right half is how it would show up. This uses
-	a bare specimen with no <code>font-variation-settings</code> of its own — not
-	<code>.sample .m-oblique</code>, which now states <code>font-variation-settings: normal</code> on itself
-	and so is deliberately immune to any ancestor, this one included.
+	<code>app.css</code> ever adds such a pin back, this middle half is how it would show up. Both use
+	a bare specimen with no <code>font-variation-settings</code> of their own — not
+	<code>.sample .m-oblique</code>, which now states <code>font-variation-settings: normal</code> on
+	itself and so is deliberately immune to any ancestor, this one included.
+	<br /><br />
+	<b>On real Safari 18.7 (iPhone XR), the left half shows upright too</b> — not because of the
+	ancestor pin, but because that engine does not perform the automatic
+	<code>font-style</code> → <code>slnt</code> mapping at all, pin or no pin. The left and middle
+	halves become visually indistinguishable there, which is itself the argument against relying on
+	<code>font-style: italic</code>: you cannot tell "blocked by an ancestor" apart from "this engine
+	never supported it" by eye. The right half sidesteps the whole question — it sets
+	<code>font-variation-settings: 'slnt' -11</code> directly, so there is no automatic mapping to be blocked
+	or unsupported, and it leans correctly under the very same pinned ancestor, on every engine including
+	real Safari.
 </p>
 <div class="rows">
 	<section>
 		<h3>
-			Left: italic, no ancestor pin — correct. Right: same, under a pinned ancestor — stays upright
+			Left: italic, no ancestor pin. Middle: same, under a pinned ancestor — stays upright. Right:
+			explicit slnt, under the SAME pinned ancestor — leans correctly regardless
 		</h3>
 		<code class="css"
 			>font-style: italic &nbsp;vs&nbsp; (ancestor: font-variation-settings: 'slnt' 0) font-style:
-			italic</code
+			italic &nbsp;vs&nbsp; (same ancestor) font-variation-settings: 'slnt' -11</code
 		>
 		<div class="specimen">
 			<div class="half">
-				<span class="tag">no ancestor pin — correct</span>
+				<span class="tag">no ancestor pin — correct only where italic is supported</span>
 				<div class="hazard-specimen">VIZCHITRA</div>
 			</div>
 			<div class="half slnt-pinned-ancestor">
 				<span class="tag">nested under a slnt-pinned ancestor — broken on purpose</span>
 				<div class="hazard-specimen">VIZCHITRA</div>
+			</div>
+			<div class="half slnt-pinned-ancestor">
+				<span class="tag">same pinned ancestor — explicit slnt stays immune</span>
+				<div class="hazard-specimen-explicit">VIZCHITRA</div>
 			</div>
 		</div>
 	</section>
@@ -215,9 +256,13 @@
 				<li class:pass={t.browsers.chromium}>{t.browsers.chromium ? '✓' : '✗'} Chromium</li>
 				<li class:pass={t.browsers.safari}>{t.browsers.safari ? '✓' : '✗'} Safari</li>
 				<li class:pass={t.browsers.firefox}>{t.browsers.firefox ? '✓' : '✗'} Firefox</li>
-				<li class:pass={t.browsers.ios} class="expected" title="Expected, not device-confirmed">
-					{t.browsers.ios ? '✓' : '✗'} iOS
-				</li>
+				{#if t.browsers.ios === null}
+					<li class="unknown" title="Untested on a real device">? iOS</li>
+				{:else}
+					<li class:pass={t.browsers.ios} class="expected" title="Expected, not device-confirmed">
+						{t.browsers.ios ? '✓' : '✗'} iOS
+					</li>
+				{/if}
 			</ul>
 		</section>
 	{/each}
@@ -307,6 +352,16 @@
 		font-style: italic;
 	}
 
+	/* The recommended technique: sets the axis directly, so there is no
+	   automatic font-style -> slnt mapping for an ancestor pin (or a real
+	   Safari that never implemented the mapping at all) to interfere with. */
+	.hazard-specimen-explicit {
+		font-family: 'Cairo', var(--font-sans);
+		font-size: 2.6rem;
+		line-height: 1.2;
+		font-variation-settings: 'slnt' -11;
+	}
+
 	.tag {
 		display: block;
 		font-size: 0.65rem;
@@ -371,6 +426,13 @@
 		font-style: italic;
 	}
 
+	/* Genuinely untested/unknown - neutral, not a tick or cross. */
+	.verdicts li.unknown {
+		border-left-color: var(--border);
+		border-left-style: dashed;
+		font-style: italic;
+	}
+
 	/* One technique per class, so nothing leaks between rows. */
 	.m-usesite {
 		font-variation-settings:
@@ -387,6 +449,11 @@
 	   of what it does. */
 	.m-oblique {
 		font-style: italic;
+		font-variation-settings: normal;
+	}
+
+	.m-oblique-bare {
+		font-style: oblique;
 		font-variation-settings: normal;
 	}
 

@@ -65,6 +65,18 @@ CAIRO_ITALIC_NOTE = """/* Cairo italic. The font has no italic masters - "italic
    range breaks it in two of three engines: Chromium stacks a synthetic skew on
    top of the real axis, WebKit drops the axis and synthesises instead.
 
+   DO NOT rely on `font-style: italic` alone for correct rendering. Confirmed on
+   a real iPhone XR (Safari 18.7): that engine does not perform the automatic
+   font-style -> slnt mapping this descriptor enables AT ALL, pin or no pin -
+   Playwright's WebKit is a different, newer build that does, which is why this
+   didn't show up in the automated test suite. Set the axis directly instead:
+
+       font-variation-settings: 'slnt' -11;
+
+   at the use site, alongside font-style: italic if you like (harmless, purely
+   semantic once the explicit value is present - it wins over any automatic
+   mapping). See docs/compat.md, "The second real-device finding".
+
    The previous hand-written font.css used a `font-variation-settings: 'slnt' -11`
    @font-face DESCRIPTOR, which silently does nothing at all in WebKit/Safari. */"""
 
