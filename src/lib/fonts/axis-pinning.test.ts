@@ -3,16 +3,22 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
 
 /**
- * Guards the iOS Safari backslant bug (docs/compat.md).
+ * Guards the iOS Safari backslant bug (docs/compat.md) — and its own fallout.
  *
  * `font-variation-settings` REPLACES the inherited value rather than merging
- * with it, so a rule declaring only 'wght' silently discards the `'slnt' 0`
- * reset in app.css. On older iOS Safari the axis then falls back to something
- * that is not upright and Cairo leans backwards.
+ * with it, so a rule declaring only 'wght' silently discards an upright
+ * 'slnt' reset from further up the tree. On older iOS Safari the axis then
+ * falls back to something that is not upright and Cairo leans backwards.
  *
- * No browser test can catch this: desktop WebKit renders it upright, and
- * Playwright's WebKit is not an old iPhone. So the rule is enforced at the
- * source level instead — if you set 'wght', you must also state 'slnt'.
+ * No browser test can catch the original bug: desktop WebKit renders it
+ * upright, and Playwright's WebKit is not an old iPhone. So the rule is
+ * enforced at the source level instead — if you set 'wght', you must also
+ * state 'slnt'. That is the ONLY fix. An earlier version of this fix also
+ * pinned `html { font-variation-settings: 'slnt' 0 }` in app.css, which
+ * silently broke `font-style: italic` in every engine (an inherited
+ * explicit 'slnt' blocks the automatic font-style -> slnt mapping onto
+ * Cairo's oblique face — see slant.browser.test.ts, "why app.css must never
+ * pin slnt on an ancestor"). That pin is removed and must not come back.
  */
 
 const ROOT = new URL('../../..', import.meta.url).pathname;
@@ -67,9 +73,11 @@ describe('slnt is never left unpinned', () => {
 		expect(offenders).toStrictEqual([]);
 	});
 
-	test('app.css pins the axis upright and forbids synthesised oblique', () => {
+	test('app.css forbids synthesised oblique but never pins slnt on an ancestor', () => {
 		const css = readFileSync(join(ROOT, 'src/app.css'), 'utf8');
-		expect(css).toMatch(/font-variation-settings:\s*'slnt'\s*0/);
 		expect(css).toMatch(/font-synthesis:\s*weight/);
+		// Regression guard: this exact pin is what broke font-style: italic
+		// everywhere (see the file header). Do not add it back to app.css.
+		expect(css).not.toMatch(/font-variation-settings:\s*'slnt'\s*0/);
 	});
 });

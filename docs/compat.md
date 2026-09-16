@@ -19,18 +19,29 @@ decides — which on old iOS is not upright. The `@font-face`
 in WebKit (see the table below), so it does nothing on exactly the browsers that
 need it.
 
-**Fix**, applied on `html` in `src/app.css`:
+**Fix — component-level, not a global reset.** Never write
+`font-variation-settings: 'wght' N` on its own for a font with a `slnt` axis —
+always restate `'slnt'`. `RetalicsText` does this even in `plain` mode, where
+omitting it would look harmless. `src/lib/fonts/axis-pinning.test.ts` enforces
+this across the codebase. `/compat` carries a permanent side-by-side of the
+unpinned and pinned cases so the bug can be re-checked on a real device after
+any change.
 
-```css
-font-variation-settings: 'slnt' 0; /* pin upright at the use site */
-font-synthesis: weight; /* allow faux bold, forbid faux oblique */
-```
-
-**The rule this implies.** Never write `font-variation-settings: 'wght' N` on
-its own for a font with a `slnt` axis — always restate `'slnt'`. `RetalicsText`
-does this even in `plain` mode, where omitting it would look harmless. `/compat`
-carries a permanent side-by-side of the unpinned and pinned cases so the bug can
-be re-checked on a real device after any change.
+**A first version of this fix instead pinned `html { font-variation-settings:
+'slnt' 0 }` in `app.css`, and it broke `font-style: italic` everywhere, on
+every engine — not just old iOS.** `font-variation-settings` replaces the
+inherited value rather than merging with it, so that pin was inherited by
+every descendant, including ones asking for `font-style: italic` against
+Cairo's bare `oblique` face. An inherited **explicit** `slnt` value blocks the
+browser's automatic `font-style` → `slnt` mapping, so the shipped italic
+technique below silently stopped slanting, on desktop and mobile alike.
+Confirmed with a real-browser measurement (`slant.browser.test.ts`, "why
+app.css must never pin slnt on an ancestor") before removing it — shear was
+exactly `0` in Chromium, WebKit and Firefox with the pin nested above the
+italic specimen. The pin is removed; `app.css` only forbids synthesised
+oblique now (`font-synthesis: weight`), and `axis-pinning.test.ts` asserts the
+pin never comes back. `/compat` carries a matching hazard demo so this stays
+checkable on a real device.
 
 This is also why the desktop matrix is necessary but not sufficient, and why the
 `/compat` page still exists alongside the automated tests.
@@ -51,6 +62,15 @@ height between them. Correct is `tan(11°) = 0.194`.
 ## Results
 
 Shear measured on a 200px `I`. Correct = **0.194**. Synthetic skew is 14° = 0.249.
+
+**Read this table as "the technique in isolation," not "what actually
+renders on the page."** Every row is measured on a specimen with no ancestor
+CSS around it. That is precisely why the "shipped" row below can measure
+0.194/0.193/0.194 here and _still_ have rendered upright on `/compat` for a
+while — the earlier `html`-level `slnt` pin (see the section above) wasn't a
+property of the technique, it was an ancestor discovered nowhere in this
+table. If a shipped technique ever looks broken on the actual page despite
+this table saying it's fine, suspect an ancestor, not this table.
 
 | Technique                                                       |  Chromium |    WebKit |   Firefox | Verdict                    |
 | --------------------------------------------------------------- | --------: | --------: | --------: | -------------------------- |
