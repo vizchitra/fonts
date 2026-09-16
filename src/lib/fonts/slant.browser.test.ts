@@ -331,6 +331,30 @@ describe('an explicit slnt anywhere in the chain blocks italic', () => {
 		);
 		expect(withRelease).toBeGreaterThan(SLANTED - TOLERANCE);
 	});
+
+	// Real Safari 18.7 (iPhone XR) does not perform the automatic font-style ->
+	// slnt mapping at all, even against a bare `oblique` face with no ancestor
+	// pin in the way — confirmed on-device on /compat, not reproducible here
+	// since Playwright's WebKit is a different, newer build that does perform
+	// it. This is exactly the kind of engine divergence the CSSWG's ongoing
+	// "ital"/font-style discussion (see docs/compat.md) is about, and it can't
+	// be pinned by a browser test the way the ancestor-pin hazard above can.
+	//
+	// The fix is to not depend on the automatic mapping as the MECHANISM at
+	// all: set font-variation-settings: 'slnt' -11 directly at the use site.
+	// This test proves that technique's other advantage over font-style:
+	// italic - it is immune to the exact ancestor-pin hazard above, because an
+	// element's own explicit declaration always wins over an inherited one,
+	// regardless of what ancestor set. Real Safari not implementing the
+	// automatic mapping therefore cannot break this: there is no mapping to
+	// fail, the axis is set directly.
+	test('an explicit slnt at the use site survives an ancestor pin, unlike italic', async () => {
+		const shear = await shearOfNested(
+			PINNED_ANCESTOR,
+			"font-family: 'CairoUpright'; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+	});
 });
 
 describe('Cairo metrics', () => {
