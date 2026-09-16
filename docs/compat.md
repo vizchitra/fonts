@@ -98,6 +98,36 @@ and is wrong twice over:
   = 0.444, more than double the intended lean.
 - **WebKit discards** the axis and synthesises instead, landing on a flat 0.249.
 
+**The angle-range trap is conditional, not absolute — and that's an argument for the
+bare keyword, not against the trap being real.** `font-synthesis: weight` (which
+`app.css` sets globally, for unrelated reasons — to stop synthetic bold-italic
+elsewhere) happens to neutralise Chromium's and WebKit's failure modes here: both
+turn out to be synthesis-shaped (Chromium stacks a synthetic skew; WebKit prefers
+synthesis over consulting the axis), so forbidding synthesis removes exactly the
+broken part and both measure correctly by accident. Confirmed with
+`slant.browser.test.ts`, "the oblique-range trap is neutralised by
+font-synthesis: weight". This does **not** make the angle-range technique safe to
+ship — `fonts.css` controls the `@font-face`, not what `font-synthesis` a consumer
+sets, so a consumer who adopts the range form without independently getting
+`font-synthesis` right still hits the double-slant. The bare `oblique` keyword needs
+no such cooperation: it measures correctly with or without any `font-synthesis`
+rule anywhere. That is the sharper, complete reason to prefer it, not just "broken
+in 2 of 3 engines."
+
+Reproducing the trap on `/compat` itself (which inherits `app.css`'s
+`font-synthesis: weight`) took three wrong turns, each disproved against a real
+browser rather than assumed — recorded in the row's own CSS comment in
+`+page.svelte` as a durable warning: `font-synthesis: auto` is not a valid value
+and is silently dropped; `revert` does not mean "ignore all author CSS" — since
+`font-synthesis` is an _inherited_ property, `revert` falls back to the inherited
+value (the very ancestor pin it was meant to escape) when no lower-origin rule
+exists; and the full Level 4 initial value
+(`weight style small-caps position`) got the whole declaration dropped by the dev
+server's CSS pipeline for Chromium/WebKit specifically, because `position` isn't
+broadly supported and whatever browser-targeting logic strips it dropped the
+entire shorthand rather than degrading gracefully. `font-synthesis: weight style` —
+the original, universally-supported two-value form — is what actually works.
+
 Two findings worth carrying into Phase 2 and 3:
 
 1. **The old hand-written `font.css` was broken in Safari all along.** Its Cairo

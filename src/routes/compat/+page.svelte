@@ -5,13 +5,34 @@
 	// slnt barely changes advance widths (Cairo's 'I' moves 248 -> 249 units per
 	// 1000), so no width measurement can detect slant. The upright control sits
 	// beside each row precisely so a failure looks like "nothing happened".
-	const SLANT_TESTS = [
+	//
+	// `browsers.chromium/safari/firefox` are MEASURED, from
+	// slant.browser.test.ts, which runs these exact techniques through real
+	// engines on every `pnpm test` — docs/compat.md has the numbers. `ios` is
+	// NOT measured the same way: Playwright's WebKit is not an iPhone, and
+	// none of these five rows have been checked on the actual device yet
+	// (only the backslant section above has). It is a reasoned EXPECTATION —
+	// same as the safari column, since nothing here is known to differ on
+	// iOS specifically — not a confirmed result. Rendered with a `?` to keep
+	// that distinction visible rather than implying a device check that
+	// hasn't happened.
+	type Verdict = { chromium: boolean; safari: boolean; firefox: boolean; ios: boolean };
+
+	const SLANT_TESTS: {
+		id: string;
+		title: string;
+		css: string;
+		expect: string;
+		klass: string;
+		browsers: Verdict;
+	}[] = [
 		{
 			id: 'fvs-use-site',
 			title: 'font-variation-settings at the use site',
 			css: "font-variation-settings: 'slnt' -11",
 			expect: 'Leans forward. This is the baseline — if this fails, nothing else matters.',
-			klass: 'm-usesite'
+			klass: 'm-usesite',
+			browsers: { chromium: true, safari: true, firefox: true, ios: true }
 		},
 		{
 			id: 'oblique-range',
@@ -19,15 +40,17 @@
 			css: 'font-style: italic  (face declares: font-style: oblique)',
 			expect:
 				'Leans ~11deg. Verified correct in Chromium, WebKit and Firefox. This is what fonts.css ships.',
-			klass: 'm-oblique'
+			klass: 'm-oblique',
+			browsers: { chromium: true, safari: true, firefox: true, ios: true }
 		},
 		{
 			id: 'oblique-explicit',
 			title: 'font-style: italic against an oblique ANGLE RANGE — the trap',
-			css: 'font-style: italic  (face declares: font-style: oblique 0deg 11deg)',
+			css: 'font-style: italic; font-synthesis: weight style  (face declares: font-style: oblique 0deg 11deg)',
 			expect:
-				'Should lean the SAME as the row above. Chromium leans roughly twice as far (it stacks a synthetic skew on the real axis); WebKit leans a flat 14deg (it drops the axis). Only Firefox is correct.',
-			klass: 'm-oblique-range'
+				"Should lean the SAME as the row above. Chromium leans roughly twice as far (a synthetic skew stacked on the real axis); WebKit leans a flat 14deg (it prefers synthesis over the axis). Only Firefox is correct. font-synthesis is forced back to weight+style here — this site's own font-synthesis: weight would otherwise neutralise the trap, which is real but conditional on a consumer NOT setting that rule.",
+			klass: 'm-oblique-range',
+			browsers: { chromium: false, safari: false, firefox: true, ios: false }
 		},
 		{
 			id: 'fvs-descriptor',
@@ -35,7 +58,8 @@
 			css: "@font-face { font-variation-settings: 'slnt' -11 }",
 			expect:
 				'The old hand-written font.css relied on this. Measured DEAD in WebKit — upright, no lean at all — so Cairo italic was silently broken in Safari all along.',
-			klass: 'm-descriptor'
+			klass: 'm-descriptor',
+			browsers: { chromium: true, safari: false, firefox: true, ios: false }
 		},
 		{
 			id: 'synthesis',
@@ -43,7 +67,8 @@
 			css: "font-style: italic  +  font-variation-settings: 'slnt' -11",
 			expect:
 				'Should look the SAME as the first row. If it leans noticeably further, the engine is synthesising a skew on top of the real axis — fix with font-synthesis: none.',
-			klass: 'm-synthesis'
+			klass: 'm-synthesis',
+			browsers: { chromium: true, safari: true, firefox: true, ios: true }
 		}
 	];
 
@@ -136,12 +161,15 @@
 <p class="hint">
 	The right half is expected to look upright, unlike the left — this is the exact bug an earlier
 	version of the iOS fix reintroduced by pinning <code>slnt</code> on <code>html</code>. If
-	<code>app.css</code> ever adds such a pin back, this right half is how it would show up.
+	<code>app.css</code> ever adds such a pin back, this right half is how it would show up. This uses
+	a bare specimen with no <code>font-variation-settings</code> of its own — not
+	<code>.sample .m-oblique</code>, which now states <code>font-variation-settings: normal</code> on itself
+	and so is deliberately immune to any ancestor, this one included.
 </p>
 <div class="rows">
 	<section>
 		<h3>
-			Left: italic, no ancestor pin — SHIPPED. Right: same, under a pinned ancestor — stays upright
+			Left: italic, no ancestor pin — correct. Right: same, under a pinned ancestor — stays upright
 		</h3>
 		<code class="css"
 			>font-style: italic &nbsp;vs&nbsp; (ancestor: font-variation-settings: 'slnt' 0) font-style:
@@ -150,11 +178,11 @@
 		<div class="specimen">
 			<div class="half">
 				<span class="tag">no ancestor pin — correct</span>
-				<div class="sample m-oblique">VIZCHITRA</div>
+				<div class="hazard-specimen">VIZCHITRA</div>
 			</div>
 			<div class="half slnt-pinned-ancestor">
 				<span class="tag">nested under a slnt-pinned ancestor — broken on purpose</span>
-				<div class="sample m-oblique">VIZCHITRA</div>
+				<div class="hazard-specimen">VIZCHITRA</div>
 			</div>
 		</div>
 	</section>
@@ -183,6 +211,14 @@
 				</div>
 			</div>
 			<p class="expect">{t.expect}</p>
+			<ul class="verdicts">
+				<li class:pass={t.browsers.chromium}>{t.browsers.chromium ? '✓' : '✗'} Chromium</li>
+				<li class:pass={t.browsers.safari}>{t.browsers.safari ? '✓' : '✗'} Safari</li>
+				<li class:pass={t.browsers.firefox}>{t.browsers.firefox ? '✓' : '✗'} Firefox</li>
+				<li class:pass={t.browsers.ios} class="expected" title="Expected, not device-confirmed">
+					{t.browsers.ios ? '✓' : '✗'} iOS
+				</li>
+			</ul>
 		</section>
 	{/each}
 </div>
@@ -259,6 +295,18 @@
 		font-variation-settings: 'slnt' 0;
 	}
 
+	/* Deliberately bare — no font-variation-settings of its own, unlike
+	   .sample. This isolates the ancestor's effect. .m-oblique (used in the
+	   table below) states `font-variation-settings: normal` on itself and so
+	   would stay correct here too, which is the whole reason it needed its
+	   own class rather than reusing this one. */
+	.hazard-specimen {
+		font-family: 'Cairo', var(--font-sans);
+		font-size: 2.6rem;
+		line-height: 1.2;
+		font-style: italic;
+	}
+
 	.tag {
 		display: block;
 		font-size: 0.65rem;
@@ -295,6 +343,34 @@
 		color: var(--text-muted);
 	}
 
+	.verdicts {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		padding: 0;
+		margin: 0.6rem 0 0;
+	}
+
+	.verdicts li {
+		border: 1px solid var(--border);
+		border-left: 3px solid #f87171;
+		border-radius: var(--radius);
+		padding: 0.25rem 0.55rem;
+		font-size: 0.72rem;
+		color: var(--text-muted);
+	}
+
+	.verdicts li.pass {
+		border-left-color: #4ade80;
+	}
+
+	/* Reasoned, not device-confirmed — see the comment on SLANT_TESTS. */
+	.verdicts li.expected {
+		border-left-style: dashed;
+		font-style: italic;
+	}
+
 	/* One technique per class, so nothing leaks between rows. */
 	.m-usesite {
 		font-variation-settings:
@@ -302,18 +378,54 @@
 			'slnt' -11;
 	}
 
+	/* .sample states 'slnt' 0 on THIS SAME element (not an ancestor), and an
+	   explicit same-element value beats font-style's automatic mapping even
+	   more directly than an inherited one does. `normal` releases it — the
+	   font-variation-settings initial value, meaning "no CSS-level override,
+	   let font-style/the @font-face descriptor decide" — so the technique
+	   below is actually being tested, not silently pinned upright regardless
+	   of what it does. */
 	.m-oblique {
 		font-style: italic;
+		font-variation-settings: normal;
 	}
 
 	.m-oblique-range {
 		font-family: 'CairoObliqueRangeTest', var(--font-sans);
 		font-style: italic;
+		font-variation-settings: normal;
+		/* html sets font-synthesis: weight globally, which happens to
+		   neutralise this exact trap (slant.browser.test.ts, "the
+		   oblique-range trap is neutralised by font-synthesis: weight") —
+		   forbidding synthesis removes the synthetic skew Chromium and
+		   WebKit stack on top of the axis, leaving the correct angle. This
+		   row needs to re-enable synthesis to demonstrate the danger a
+		   consumer sees if they adopt the range face WITHOUT also setting
+		   font-synthesis correctly, which fonts.css cannot enforce for them.
+		   Getting there took three wrong turns, each confirmed wrong with a
+		   real browser rather than assumed. (1) `auto` is not a valid
+		   font-synthesis value, so the browser silently drops it and does
+		   nothing. (2) `revert` is NOT "ignore all author CSS" —
+		   font-synthesis is an inherited property, and revert falls back to
+		   the INHERITED value when no lower-origin rule exists, which is
+		   exactly html's `weight` again. (3) the full initial value,
+		   `weight style small-caps position`, got the whole declaration
+		   dropped by the dev server's CSS pipeline for Chromium/WebKit
+		   specifically (confirmed via document.styleSheets in each engine)
+		   — `position` is a newer Level 4 keyword, and whatever browser-
+		   target logic strips unsupported values dropped the entire
+		   shorthand rather than degrading it. `weight style` is the
+		   original, universally-supported two-value form and survives
+		   everywhere; we don't need small-caps/position for this demo
+		   anyway. */
+		font-synthesis: weight style;
 	}
 
 	.m-descriptor {
-		/* Relies on the @font-face descriptor in the block below. */
+		/* Relies on the @font-face descriptor in the block below — which an
+		   explicit CSS-level 'slnt' would override if left in place. */
 		font-family: 'CairoDescriptorTest', var(--font-sans);
+		font-variation-settings: normal;
 	}
 
 	.m-synthesis {
