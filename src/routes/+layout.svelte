@@ -16,6 +16,7 @@
 		<a href="/" class="brand">VizChitra Fonts</a>
 		<nav>
 			<a href="/">Retalics Lab</a>
+			<a href="/catalogue">Catalogue</a>
 			<a href="/compat">Compat</a>
 		</nav>
 	</header>

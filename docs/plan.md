@@ -107,16 +107,18 @@ Splitting by `unicode-range` across several `@font-face` blocks — the pattern 
 uses for latin / latin-ext — is therefore strictly better than either a single subset or the full
 font. Measured on Fira Code with `--layout-features='*'`:
 
-| File                                                   | Size       | Ligatures | `cv`/`ss` | Loaded               |
-| ------------------------------------------------------ | ---------- | --------- | --------- | -------------------- |
-| **latin**                                              | **44.0KB** | **86/86** | **42**    | always               |
-| latin-ext                                              | 13.6KB     | —         | 10        | on demand            |
-| symbols (arrows, math, box-drawing, blocks, geometric) | 12.2KB     | 4         | 2         | on demand            |
-| greek-cyrillic                                         | 30.0KB     | —         | —         | on demand            |
-| **total coverage**                                     | **99.9KB** |           |           | vs 110KB unsubsetted |
+| File                                                   | Size       | Ligatures | `cv`/`ss` | Loaded                 |
+| ------------------------------------------------------ | ---------- | --------- | --------- | ---------------------- |
+| **latin**                                              | **41.5KB** | **86/86** | **42**    | always                 |
+| latin-ext                                              | 12.6KB     | —         | 10        | on demand              |
+| symbols (arrows, math, box-drawing, blocks, geometric) | 10.9KB     | 4         | 2         | on demand              |
+| greek-cyrillic                                         | 28.8KB     | —         | —         | on demand              |
+| **total coverage**                                     | **93.8KB** |           |           | vs 110.4KB unsubsetted |
 
-A typical page downloads **44KB instead of 110KB — 60% less — while losing nothing**: the four files
-together cover more than the single full font and still total less than it.
+A typical page downloads **41.5KB instead of 110.4KB — 62% less — while losing nothing**: the four
+files together cover more than the single full font and still total less than it. Figures are from
+`static/fonts/v1/manifest.json` as built by `font-src/subset.py`; the same measurement for all three
+families, including a same-basis unsplit-woff2 comparison, is on the `/catalogue` page.
 
 ### Toolchain status
 
