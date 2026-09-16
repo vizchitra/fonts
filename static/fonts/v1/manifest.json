@@ -53,13 +53,6 @@
 					"bytes": 12080,
 					"glyphs": 46,
 					"codepoints": 40
-				},
-				{
-					"subset": "greek-cyrillic",
-					"file": "IBMPlexSans-Variable-greek-cyrillic.woff2",
-					"bytes": 89924,
-					"glyphs": 354,
-					"codepoints": 265
 				}
 			]
 		},
@@ -87,13 +80,6 @@
 					"bytes": 12412,
 					"glyphs": 46,
 					"codepoints": 40
-				},
-				{
-					"subset": "greek-cyrillic",
-					"file": "IBMPlexSans-Variable-Italic-greek-cyrillic.woff2",
-					"bytes": 105264,
-					"glyphs": 347,
-					"codepoints": 265
 				}
 			]
 		}
@@ -123,13 +109,6 @@
 					"bytes": 11180,
 					"glyphs": 351,
 					"codepoints": 324
-				},
-				{
-					"subset": "greek-cyrillic",
-					"file": "FiraCode-Variable-greek-cyrillic.woff2",
-					"bytes": 29496,
-					"glyphs": 424,
-					"codepoints": 361
 				}
 			]
 		}
