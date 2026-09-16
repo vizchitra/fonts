@@ -12,11 +12,12 @@
 	// NOT measured the same way: Playwright's WebKit is not an iPhone, so the
 	// safari and ios columns CAN diverge, and for the 'oblique-range' row they
 	// do — confirmed on a real iPhone XR (Safari 18.7), not just reasoned.
-	// Where a row's `ios` value is still an unconfirmed extrapolation from the
-	// safari column rather than an on-device result, it is rendered with the
-	// same `?`/dashed styling either way — check this file's row-level
-	// `expect` text for which case applies before trusting either.
-	type Verdict = { chromium: boolean; safari: boolean; firefox: boolean; ios: boolean };
+	// `ios: null` means genuinely untested/unknown rather than a reasoned
+	// extrapolation — rendered as a neutral `?`, not a tick or cross, so an
+	// open question is never drawn as a pass. Check this file's row-level
+	// `expect` text either way before trusting a non-null value here too;
+	// some are still extrapolated from the safari column, not device-checked.
+	type Verdict = { chromium: boolean; safari: boolean; firefox: boolean; ios: boolean | null };
 
 	const SLANT_TESTS: {
 		id: string;
@@ -51,6 +52,22 @@
 				'hint; do not depend on it for correct rendering. Use the row above instead.',
 			klass: 'm-oblique',
 			browsers: { chromium: true, safari: true, firefox: true, ios: false }
+		},
+		{
+			id: 'oblique-bare',
+			title:
+				'font-style: oblique (bare, no italic) against a bare `oblique` face — UNTESTED on iOS',
+			css: 'font-style: oblique  (face declares: font-style: oblique)',
+			expect:
+				'Per the CSS Fonts 4 font-style-matching algorithm, this is an exact match against the ' +
+				"face's own font-style: oblique descriptor — no italic-to-oblique fallback step, one " +
+				'less layer of indirection than the row above. Leans ~11deg in Chromium, current WebKit ' +
+				'and Firefox (same as italic — Playwright cannot tell these apart). Whether real ' +
+				"Safari's failure on the row above is specific to italic's fallback path, or is a " +
+				'blanket failure to map ANY font-style value onto slnt, is exactly what this row is ' +
+				'here to find out on a real device. Not yet checked.',
+			klass: 'm-oblique-bare',
+			browsers: { chromium: true, safari: true, firefox: true, ios: null }
 		},
 		{
 			id: 'oblique-explicit',
@@ -239,9 +256,13 @@
 				<li class:pass={t.browsers.chromium}>{t.browsers.chromium ? '✓' : '✗'} Chromium</li>
 				<li class:pass={t.browsers.safari}>{t.browsers.safari ? '✓' : '✗'} Safari</li>
 				<li class:pass={t.browsers.firefox}>{t.browsers.firefox ? '✓' : '✗'} Firefox</li>
-				<li class:pass={t.browsers.ios} class="expected" title="Expected, not device-confirmed">
-					{t.browsers.ios ? '✓' : '✗'} iOS
-				</li>
+				{#if t.browsers.ios === null}
+					<li class="unknown" title="Untested on a real device">? iOS</li>
+				{:else}
+					<li class:pass={t.browsers.ios} class="expected" title="Expected, not device-confirmed">
+						{t.browsers.ios ? '✓' : '✗'} iOS
+					</li>
+				{/if}
 			</ul>
 		</section>
 	{/each}
@@ -405,6 +426,13 @@
 		font-style: italic;
 	}
 
+	/* Genuinely untested/unknown - neutral, not a tick or cross. */
+	.verdicts li.unknown {
+		border-left-color: var(--border);
+		border-left-style: dashed;
+		font-style: italic;
+	}
+
 	/* One technique per class, so nothing leaks between rows. */
 	.m-usesite {
 		font-variation-settings:
@@ -421,6 +449,11 @@
 	   of what it does. */
 	.m-oblique {
 		font-style: italic;
+		font-variation-settings: normal;
+	}
+
+	.m-oblique-bare {
+		font-style: oblique;
 		font-variation-settings: normal;
 	}
 

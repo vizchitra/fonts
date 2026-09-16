@@ -171,7 +171,17 @@ const TECHNIQUES = [
 		label: 'font-style: italic against a bare `oblique` face',
 		css: "font-family: 'CairoOblique'; font-style: italic;",
 		worksIn: ALL,
-		note: 'What the generated fonts.css ships. Correct in all three engines.'
+		note: 'What the generated fonts.css ships. Correct in all three engines, but real Safari 18.7 does not do it at all (docs/compat.md) - Playwright cannot reproduce that gap.'
+	},
+	{
+		label: 'font-style: oblique (bare, no angle) against a bare `oblique` face',
+		css: "font-family: 'CairoOblique'; font-style: oblique;",
+		worksIn: ALL,
+		note:
+			"CSS Fonts 4's font-style-matching algorithm treats this as an exact match against the " +
+			"face's own font-style: oblique descriptor, with no italic-to-oblique fallback step in " +
+			'between - one less layer of indirection than `italic`. Whether that difference changes ' +
+			'anything on real Safari is untested here; Playwright cannot answer that question.'
 	},
 	{
 		label: 'font-style: oblique 11deg at the use site on a normal face',
