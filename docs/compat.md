@@ -195,6 +195,16 @@ Two findings worth carrying into Phase 2 and 3:
 
 ## Still to test
 
+- **Whether `font-style: oblique` (bare, no italic) succeeds on real Safari where `italic` fails.**
+  Per [CSS Fonts 4's font-style-matching algorithm](https://drafts.csswg.org/css-fonts-4/#font-style-matching),
+  `italic` and `oblique` are matched differently: `italic` goes through an italic-to-oblique fallback
+  step, while a bare `oblique` value matches a face's own `font-style: oblique` descriptor directly —
+  one less layer of indirection. Whether that difference matters on real Safari, or whether it fails
+  to map any `font-style` value onto `slnt` at all regardless of keyword, is genuinely unknown; added
+  as its own `/compat` row (`oblique-bare`) with an honest "untested" verdict rather than a guess.
+  Playwright measures it identically to `italic` in all three engines, so it can't answer this either.
+  If `oblique` alone turns out to work, that's the simpler, spec-literal fix — no explicit
+  `font-variation-settings` needed at every use site — rather than bypassing font-style matching.
 - **Whether real Safari ever adds the automatic `font-style` → `slnt` mapping.** Real, findable bug
   reports exist for this exact gap — Chromium
   [Issue 1064756](https://bugs.chromium.org/p/chromium/issues/detail?id=1064756), WebKit
