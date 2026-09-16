@@ -487,7 +487,13 @@
 									face.family,
 									MATRIX_COL_CSS[useSite.id] + (cell.extraCss ?? '')
 								)}
-								{@render verdictBadges(cell.verdict)}
+								{#if status === 'control'}
+									<p class="control-note">
+										trivial — nothing here requests a slant, not a meaningful test
+									</p>
+								{:else}
+									{@render verdictBadges(cell.verdict)}
+								{/if}
 							{/if}
 						</td>
 					{/each}
@@ -694,8 +700,8 @@
 	.overlap {
 		position: relative;
 		isolation: isolate;
-		height: 1.9rem;
-		font-size: 1.4rem;
+		height: 2.6rem;
+		font-size: 2rem;
 		line-height: 1;
 		margin-bottom: 0.5rem;
 	}
@@ -758,6 +764,13 @@
 	}
 
 	.blank-cell {
+		color: var(--text-muted);
+	}
+
+	.control-note {
+		margin: 0;
+		font-size: 0.72rem;
+		font-style: italic;
 		color: var(--text-muted);
 	}
 
