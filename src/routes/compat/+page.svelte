@@ -93,6 +93,41 @@
 	for the same lean.
 </p>
 
+<h2>The iOS Safari backslant</h2>
+<p class="hint">
+	The original bug, and the reason this page exists. Reported on <b>Safari 18.7, iPhone XR</b>:
+	Cairo renders leaning <i>backwards</i> when <code>slnt</code> is left to the font's default. Desktop
+	engines look fine, so this only shows up on an actual old device.
+</p>
+<p class="hint">
+	The cause is that <code>font-variation-settings</code> <b>replaces</b> the inherited value rather
+	than merging with it — so declaring only <code>'wght'</code> silently discards any upright reset.
+	The <code>@font-face</code> descriptor cannot save you here: it is measurably inert in WebKit.
+</p>
+
+<div class="rows">
+	<section>
+		<h3>Left: axis unpinned — Right: <code>'slnt' 0</code> stated</h3>
+		<code class="css">font-variation-settings: 'wght' 600 &nbsp;vs&nbsp; 'wght' 600, 'slnt' 0</code>
+		<div class="specimen">
+			<div class="half">
+				<span class="tag">unpinned — backslants on old iOS</span>
+				<div class="sample m-unpinned">VIZCHITRA</div>
+			</div>
+			<div class="half">
+				<span class="tag">pinned — correct everywhere</span>
+				<div class="sample m-pinned">VIZCHITRA</div>
+			</div>
+		</div>
+		<p class="expect">
+			These must look identical. If the left one leans back, this device has the bug — which the
+			<code>html</code> rule in <code>app.css</code> (<code>'slnt' 0</code> plus
+			<code>font-synthesis: weight</code>) fixes, provided no descendant redeclares
+			<code>font-variation-settings</code> without restating <code>slnt</code>.
+		</p>
+	</section>
+</div>
+
 <h2>Slant techniques — judge by eye</h2>
 <p class="hint">
 	Each row shows the technique on the left and an untouched upright control on the right. <b
@@ -198,7 +233,21 @@
 		font-family: 'Cairo', var(--font-sans);
 		font-size: 2.6rem;
 		line-height: 1.2;
+		/* 'slnt' 0 is stated, not omitted — see the backslant section above. */
+		font-variation-settings:
+			'wght' 600,
+			'slnt' 0;
+	}
+
+	/* The iOS Safari backslant demo. Deliberately omits slnt, which is the bug. */
+	.m-unpinned {
 		font-variation-settings: 'wght' 600;
+	}
+
+	.m-pinned {
+		font-variation-settings:
+			'wght' 600,
+			'slnt' 0;
 	}
 
 	.expect {

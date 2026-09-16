@@ -42,7 +42,10 @@
 	let style = $derived(
 		[
 			`--wght: ${wght}`,
-			`font-variation-settings: 'wght' ${wght}${mode === 'slnt' ? `, 'slnt' ${slnt}` : ''}`,
+			// slnt is always stated, never omitted. Declaring font-variation-settings
+			// REPLACES the inherited value, so listing only 'wght' would discard the
+			// upright reset in app.css and let older iOS Safari backslant the text.
+			`font-variation-settings: 'wght' ${wght}, 'slnt' ${mode === 'slnt' ? slnt : 0}`,
 			`letter-spacing: ${tracking}em`,
 			`font-kerning: ${kerning ? 'normal' : 'none'}`,
 			`font-feature-settings: 'calt' ${calt ? 1 : 0}`,
