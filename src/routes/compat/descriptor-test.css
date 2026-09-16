@@ -1,0 +1,32 @@
+/* Isolated families for the failing techniques on /compat. Each keeps its own
+   family name so a failure cannot affect the real 'Cairo' faces, and lives in a
+   plain .css file because @font-face inside a Svelte <style> block is scoped.
+
+   Both are known-broken and kept as live demonstrations, with the numbers pinned
+   by src/lib/fonts/slant.browser.test.ts and recorded in docs/compat.md. */
+
+/* What the old hand-written font.css used for Cairo italic. Measures 0.000 shear
+   in WebKit — completely inert — so Safari never rendered the italic at all. */
+
+@font-face {
+	font-family: 'CairoDescriptorTest';
+	src: url('/fonts/v1/Cairo-Variable-latin.woff2') format('woff2');
+	font-weight: 200 1000;
+	font-style: normal;
+	font-variation-settings: 'slnt' -11;
+	font-display: block;
+	unicode-range: U+0000-00FF;
+}
+
+/* The angle-range trap: looks more precise than the bare `oblique` keyword and
+   is wrong in two of three engines. Chromium stacks a 14deg synthetic skew on
+   top of the real axis (0.444 vs the correct 0.194); WebKit discards the axis
+   and synthesises instead (0.249). Only Firefox maps it correctly. */
+@font-face {
+	font-family: 'CairoObliqueRangeTest';
+	src: url('/fonts/v1/Cairo-Variable-latin.woff2') format('woff2');
+	font-weight: 200 1000;
+	font-style: oblique 0deg 11deg;
+	font-display: block;
+	unicode-range: U+0000-00FF;
+}

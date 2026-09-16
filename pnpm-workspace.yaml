@@ -1,0 +1,21 @@
+# pnpm 12 reads project settings from here (moved out of .npmrc).
+
+# Supply-chain cooldown, in minutes. 0 tracks the newest releases; a real
+# project wants 1440+ — see src/content/setup.md §5.
+minimumReleaseAge: 0
+
+# Dependencies allowed to run install scripts (native binaries).
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# Collapse every `vite` in the tree onto Vite+'s core build. Must stay pinned to
+# the same version as the `vite` devDependency alias — see src/content/lessons.md.
+overrides:
+  'vite@*': 'npm:@voidzero-dev/vite-plus-core@0.3.2'
+
+# The alias makes `vite` report version 0.3.x (it *is* Vite 8). Known-good;
+# silence the peer-range noise.
+peerDependencyRules:
+  allowedVersions:
+    vite: '*'

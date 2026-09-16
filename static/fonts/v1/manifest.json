@@ -1,0 +1,137 @@
+{
+	"cairo": [
+		{
+			"basename": "Cairo-Variable",
+			"style": "normal",
+			"subsets": [
+				{
+					"subset": "latin",
+					"file": "Cairo-Variable-latin.woff2",
+					"bytes": 62288,
+					"glyphs": 267,
+					"codepoints": 220
+				},
+				{
+					"subset": "latin-ext",
+					"file": "Cairo-Variable-latin-ext.woff2",
+					"bytes": 30412,
+					"glyphs": 207,
+					"codepoints": 146
+				},
+				{
+					"subset": "symbols",
+					"file": "Cairo-Variable-symbols.woff2",
+					"bytes": 4892,
+					"glyphs": 15,
+					"codepoints": 14
+				}
+			]
+		}
+	],
+	"ibm-plex-sans": [
+		{
+			"basename": "IBMPlexSans-Variable",
+			"style": "normal",
+			"subsets": [
+				{
+					"subset": "latin",
+					"file": "IBMPlexSans-Variable-latin.woff2",
+					"bytes": 69960,
+					"glyphs": 304,
+					"codepoints": 248
+				},
+				{
+					"subset": "latin-ext",
+					"file": "IBMPlexSans-Variable-latin-ext.woff2",
+					"bytes": 45628,
+					"glyphs": 297,
+					"codepoints": 199
+				},
+				{
+					"subset": "symbols",
+					"file": "IBMPlexSans-Variable-symbols.woff2",
+					"bytes": 12080,
+					"glyphs": 46,
+					"codepoints": 40
+				},
+				{
+					"subset": "greek-cyrillic",
+					"file": "IBMPlexSans-Variable-greek-cyrillic.woff2",
+					"bytes": 89924,
+					"glyphs": 354,
+					"codepoints": 265
+				}
+			]
+		},
+		{
+			"basename": "IBMPlexSans-Variable-Italic",
+			"style": "italic",
+			"subsets": [
+				{
+					"subset": "latin",
+					"file": "IBMPlexSans-Variable-Italic-latin.woff2",
+					"bytes": 81676,
+					"glyphs": 304,
+					"codepoints": 248
+				},
+				{
+					"subset": "latin-ext",
+					"file": "IBMPlexSans-Variable-Italic-latin-ext.woff2",
+					"bytes": 51860,
+					"glyphs": 297,
+					"codepoints": 199
+				},
+				{
+					"subset": "symbols",
+					"file": "IBMPlexSans-Variable-Italic-symbols.woff2",
+					"bytes": 12412,
+					"glyphs": 46,
+					"codepoints": 40
+				},
+				{
+					"subset": "greek-cyrillic",
+					"file": "IBMPlexSans-Variable-Italic-greek-cyrillic.woff2",
+					"bytes": 105264,
+					"glyphs": 347,
+					"codepoints": 265
+				}
+			]
+		}
+	],
+	"fira-code": [
+		{
+			"basename": "FiraCode-Variable",
+			"style": "normal",
+			"subsets": [
+				{
+					"subset": "latin",
+					"file": "FiraCode-Variable-latin.woff2",
+					"bytes": 42516,
+					"glyphs": 644,
+					"codepoints": 233
+				},
+				{
+					"subset": "latin-ext",
+					"file": "FiraCode-Variable-latin-ext.woff2",
+					"bytes": 12860,
+					"glyphs": 288,
+					"codepoints": 157
+				},
+				{
+					"subset": "symbols",
+					"file": "FiraCode-Variable-symbols.woff2",
+					"bytes": 11180,
+					"glyphs": 351,
+					"codepoints": 324
+				},
+				{
+					"subset": "greek-cyrillic",
+					"file": "FiraCode-Variable-greek-cyrillic.woff2",
+					"bytes": 29496,
+					"glyphs": 424,
+					"codepoints": 361
+				}
+			]
+		}
+	]
+}

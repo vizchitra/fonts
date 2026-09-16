@@ -1,0 +1,101 @@
+{
+	"$comment": [
+		"Pinned upstream sources for every font this site serves. Each family needs a DIFFERENT",
+		"source - see docs/plan.md for why. Verified 2026-09-16; all three are at their latest release.",
+		"Run `uv run font-src/fetch.py` to re-download and verify against these hashes."
+	],
+	"fonts": {
+		"cairo": {
+			"family": "Cairo",
+			"version": "3.130",
+			"source": "google/fonts",
+			"sourceNote": "Gue3bara/Cairo's latest GitHub release is v3.116 (2020) - five years behind. Google's build is current.",
+			"commit": "a2c83daed9bc723922de8d0a9512990bd3d91df4",
+			"files": [
+				{
+					"url": "https://raw.githubusercontent.com/google/fonts/a2c83daed9bc723922de8d0a9512990bd3d91df4/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf",
+					"dest": "Cairo[slnt,wght].ttf",
+					"sha256": "667c987182391c91f4e57a2f455b1794fb5e3ee6ca4ef3383e86bb690fa9c964"
+				},
+				{
+					"url": "https://raw.githubusercontent.com/google/fonts/a2c83daed9bc723922de8d0a9512990bd3d91df4/ofl/cairo/OFL.txt",
+					"dest": "Cairo-OFL.txt",
+					"sha256": "a4554e1799d42e1405924b61eb0e0722ae1623b1f1f07f995348f96c496362a9"
+				}
+			],
+			"axes": {
+				"wght": [
+					200,
+					400,
+					1000
+				],
+				"slnt": [
+					-11,
+					0,
+					11
+				]
+			},
+			"glyphs": 1956,
+			"reservedFontName": false
+		},
+		"ibm-plex-sans": {
+			"family": "IBM Plex Sans",
+			"version": "3.201",
+			"source": "google/fonts",
+			"sourceNote": "IBM's own @ibm/plex-sans@1.1.0 npm package ships NO variable font - static weights only. Google's build is the only variable source.",
+			"commit": "0b58fb370093f9a9f4ff785d94405710b79de67c",
+			"files": [
+				{
+					"url": "https://raw.githubusercontent.com/google/fonts/0b58fb370093f9a9f4ff785d94405710b79de67c/ofl/ibmplexsans/IBMPlexSans%5Bwdth%2Cwght%5D.ttf",
+					"dest": "IBMPlexSans[wdth,wght].ttf",
+					"sha256": "3b031aa4216174205bd8471f88a49b91f093169e9e87bd5262242bc5967fe2e3"
+				},
+				{
+					"url": "https://raw.githubusercontent.com/google/fonts/0b58fb370093f9a9f4ff785d94405710b79de67c/ofl/ibmplexsans/IBMPlexSans-Italic%5Bwdth%2Cwght%5D.ttf",
+					"dest": "IBMPlexSans-Italic[wdth,wght].ttf",
+					"sha256": "0b94c5e981993764db32bf9c610ecc60cbd34ad77ec2f10ba03c64ab75124d8e"
+				}
+			],
+			"axes": {
+				"wght": [
+					100,
+					400,
+					700
+				],
+				"wdth": [
+					75,
+					100,
+					100
+				]
+			},
+			"glyphs": 1025
+		},
+		"fira-code": {
+			"family": "Fira Code",
+			"version": "6.2",
+			"fontVersion": "6.002",
+			"source": "tonsky/FiraCode",
+			"sourceNote": "Release tag 6.2 ships a font whose name table reads 'Version 6.002'. Google's ofl/firacode is stale at 5.002. Fonts live in the release ZIP asset, not the repo tree.",
+			"files": [
+				{
+					"url": "https://github.com/tonsky/FiraCode/releases/download/6.2/Fira_Code_v6.2.zip",
+					"dest": "Fira_Code_v6.2.zip",
+					"sha256": "0949915ba8eb24d89fd93d10a7ff623f42830d7c5ffc3ecbf960e4ecad3e3e79",
+					"extract": {
+						"woff2/FiraCode-VF.woff2": "FiraCode-VF.woff2",
+						"variable_ttf/FiraCode-VF.ttf": "FiraCode-VF.ttf"
+					}
+				}
+			],
+			"axes": {
+				"wght": [
+					300,
+					300,
+					700
+				]
+			},
+			"glyphs": 2030,
+			"namingNote": "Legacy family name is 'Fira Code Light' and wght defaults to 300. This is upstream's own naming - correct it with an explicit font-weight in CSS, never by modifying the font."
+		}
+	}
+}
