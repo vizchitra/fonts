@@ -17,6 +17,7 @@
 		<nav>
 			<a href="/">Retalics Lab</a>
 			<a href="/catalogue">Catalogue</a>
+			<a href="/use">Use</a>
 			<a href="/compat">Compat</a>
 		</nav>
 	</header>

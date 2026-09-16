@@ -103,8 +103,12 @@ Consequences that shape the plan:
   correctly and labelled inert — it is plumbing for VizChitra Sans, which may add one.
 - **Cairo has real GPOS kerning**, so the `font-kerning` toggle does real work.
 - **Feature availability differs per subset** — a toggle can work in latin and not latin-ext.
-- **Fira Code's default weight is 300, not 400.** Unset `font-weight` renders Light. `fonts.css`
-  must set an explicit default. This is a live bug risk in the current copy-pasted setup.
+- ~~**Fira Code's default weight is 300, not 400.** Unset `font-weight` renders Light. `fonts.css`
+  must set an explicit default.~~ Corrected by live-browser measurement in Phase 2 (§2.2): this was
+  true of the font's internal `fvar` default, but `fonts.css` declares `font-weight: 300 700` as a
+  RANGE, and CSS's own initial value (400) falls inside it — so an unset weight actually resolves
+  to 400, bit-identical across Chromium/Firefox/WebKit. The risk only applies if that range
+  descriptor were ever dropped.
 - **Fira Code has no kerning** (monospace) — expected, but means no kern toggle applies to it.
 
 ### Subsetting: measured, not assumed
@@ -511,9 +515,21 @@ question is now settled and automated:
 
 Still to check, by the same method where possible:
 
-- `font-weight` range descriptors and Fira Code's **300 default** rendering Light when unset.
+- ~~`font-weight` range descriptors and Fira Code's **300 default** rendering Light when unset.~~
+  Measured in `src/lib/fonts/fira-code.browser.test.ts`, all three engines: unset resolves to 400
+  (bit-identical to an explicit `font-weight: 400`), not the font's internal 300 default — because
+  `fonts.css`'s `@font-face` declares the range descriptor and CSS's own initial value (400) falls
+  inside it. Corrects the earlier assumption above (decisions/findings, "Fira Code's default weight
+  is 300, not 400").
 - `font-stretch: 75% 100%` vs `font-variation-settings: 'wdth'` for Plex.
-- `font-feature-settings` vs `font-variant-*` precedence.
+- ~~`font-feature-settings` vs `font-variant-*` precedence.~~ Measured for Fira Code's `calt`-driven
+  ligatures in `src/lib/fonts/fira-code.browser.test.ts`: `font-variant-ligatures: contextual` /
+  `no-contextual` is the correct high-level knob (NOT `common-ligatures`, which maps to `liga`/`clig`
+  and does nothing to `calt`); when a `font-feature-settings` declaration on the same element
+  disagrees with `font-variant-ligatures`, `font-feature-settings` wins. Detected by comparing
+  rendered pixels, not advance width — Fira Code's ligatures deliberately preserve the monospace
+  column count, so width comparison would silently test nothing (the same lesson as
+  `slant.browser.test.ts`'s shear-not-width finding, on a different axis).
 - `font-kerning` interaction with `letter-spacing`.
 - Whether a custom axis (`RETA`) is honoured through `font-variation-settings` in every engine.
 - Lazy loading: a latin-only page should fetch only the `latin` subset; adding a box-drawing
@@ -524,13 +540,18 @@ best-practice memory.
 
 ## 2.3 Docs
 
-- **Catalogue** — a specimen page per family with axes, features and file sizes.
-- **Use on the web** — copy-paste `fonts.css` link or self-host; the CSS custom properties to use.
-- **Use in Figma** — Figma cannot load webfonts from a URL. Document downloading the `.ttf`s,
-  installing locally, the Figma font-helper requirement, and that **static instances are the
-  reliable path** because Figma's variable-font support is uneven.
+- ~~**Catalogue** — a specimen page per family with axes, features and file sizes.~~ Done: `/catalogue`.
+- ~~**Use on the web** — copy-paste `fonts.css` link or self-host; the CSS custom properties to
+  use.~~ Done: `/use` — the canonical `<link>`, self-hosting, the `--font-sans`/`--font-mono`/
+  `--font-display` custom-property pattern, Cairo's italic pairing, and Fira Code's weight/ligature
+  gotchas from §2.2's browser tests.
+- **Use in Figma** — deliberately a stub on `/use` for now: Cairo, IBM Plex Sans and Fira Code are
+  all already available directly from Google Fonts inside Figma, so there's nothing to document
+  until VizChitra Sans (Phase 3) exists and needs a custom install path. Fill in then: downloading
+  the `.ttf`s, installing locally, the Figma font-helper requirement, and that **static instances
+  are the reliable path** because Figma's variable-font support is uneven.
 - **Migration** — replace the drifted `font.css` copies in `live`, `studio`, `differently`,
-  `ticketing` and `vizchitra` with the canonical one.
+  `ticketing` and `vizchitra` with the canonical one. Still open.
 
 If the lab is no longer the right homepage once the catalogue exists, move it to `/lab` at this
 point and make the catalogue `/`.
