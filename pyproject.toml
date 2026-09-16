@@ -1,0 +1,9 @@
+[project]
+name = "vizchitra-fonts-tooling"
+version = "0.1.0"
+description = "Font fetching, subsetting and (later) RETA axis surgery for VizChitra Fonts"
+requires-python = ">=3.13"
+dependencies = ["fonttools[woff]>=4.60", "brotli>=1.1"]
+
+[tool.uv]
+package = false

@@ -1,0 +1,34 @@
+{
+	"name": "vizchitra-fonts",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"scripts": {
+		"dev": "vp dev",
+		"build": "vp build",
+		"check": "svelte-kit sync && wrangler types && vp check && svelte-check --tsconfig ./tsconfig.json",
+		"test": "vp test --run",
+		"deploy": "vp build && wrangler deploy",
+		"prepare": "svelte-kit sync && wrangler types"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-cloudflare": "^8.0.0-next.6",
+		"@sveltejs/kit": "^3.0.0-next.0",
+		"@types/node": "^24.13.5",
+		"playwright": "^1.63.0",
+		"svelte": "^5.56.7",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3",
+		"vite": "npm:@voidzero-dev/vite-plus-core@0.3.2",
+		"vite-plus": "0.3.2",
+		"wrangler": "^4.131.2"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"packageManager": "pnpm@12.4.0"
+}
