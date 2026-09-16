@@ -18,7 +18,7 @@
 	"devDependencies": {
 		"@sveltejs/adapter-cloudflare": "^8.0.0-next.6",
 		"@sveltejs/kit": "^3.0.0-next.0",
-		"@types/node": "^24.13.5",
+		"@types/node": "^26.5.1",
 		"playwright": "^1.63.0",
 		"svelte": "^5.56.7",
 		"svelte-check": "^4.6.0",
