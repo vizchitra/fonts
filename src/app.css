@@ -36,19 +36,27 @@
 		color: var(--text);
 		background: var(--bg);
 
-		/* Pin the slant axis to upright explicitly, at the use site.
-		   Not belt-and-braces: on older iOS Safari (reported on 18.7, iPhone XR)
-		   Cairo renders BACKSLANTED when slnt is left to the font default. The
-		   @font-face `font-variation-settings` descriptor cannot fix it — that
-		   descriptor is measurably inert in WebKit (docs/compat.md) — so the reset
-		   has to happen here, where it works in every engine.
-		   Anything wanting slant overrides this explicitly. */
-		font-variation-settings: 'slnt' 0;
-
 		/* Allow synthesised weight, forbid synthesised oblique. Every engine fakes
 		   a 14deg skew when asked for italic on a face that has none, and Chromium
 		   stacks it on top of a real slnt axis. */
 		font-synthesis: weight;
+
+		/* NOT pinning 'slnt' here on purpose — do not add it back.
+		   font-variation-settings REPLACES the inherited value rather than
+		   merging with it, so an ancestor stating 'slnt' 0 explicitly would be
+		   inherited by every descendant, including one that asks for
+		   font-style: italic — and an inherited EXPLICIT axis value blocks the
+		   browser's automatic font-style -> slnt mapping onto Cairo's oblique
+		   face. Measured: src/lib/fonts/slant.browser.test.ts, describe block
+		   "the iOS-backslant fix does not kill the shipped italic technique".
+		   Putting this pin here previously broke italic everywhere, silently,
+		   on every engine, not just old iOS.
+
+		   The iOS Safari 18.7 backslant (docs/compat.md) is fixed at the
+		   component level instead: any rule stating 'wght' via
+		   font-variation-settings must also state 'slnt' — enforced by
+		   src/lib/fonts/axis-pinning.test.ts. That is a narrower, correct fix,
+		   because it never creates an ancestor value for italic to inherit. */
 	}
 
 	a {

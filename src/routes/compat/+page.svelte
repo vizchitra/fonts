@@ -120,11 +120,43 @@
 			</div>
 		</div>
 		<p class="expect">
-			These must look identical. If the left one leans back, this device has the bug — which the
-			<code>html</code> rule in <code>app.css</code> (<code>'slnt' 0</code> plus
-			<code>font-synthesis: weight</code>) fixes, provided no descendant redeclares
-			<code>font-variation-settings</code> without restating <code>slnt</code>.
+			These must look identical. If the left one leans back, this device has the bug. The fix is
+			component-level, not a global reset: any rule that states <code>'wght'</code> via
+			<code>font-variation-settings</code> must also state <code>'slnt'</code>
+			(<code>src/lib/fonts/axis-pinning.test.ts</code> enforces this for this repo's own code). An
+			earlier version of this fix instead pinned <code>'slnt' 0</code> on <code>html</code> in
+			<code>app.css</code> — that broke <code>font-style: italic</code> everywhere, on every engine,
+			because an ancestor's explicit <code>slnt</code> blocks the browser's automatic mapping from
+			<code>font-style</code> onto the axis. The section below re-checks that on this device.
 		</p>
+	</section>
+</div>
+
+<h2>Hazard demo: an ancestor pin kills italic (deliberately broken — not our CSS)</h2>
+<p class="hint">
+	The right half is expected to look upright, unlike the left — this is the exact bug an earlier
+	version of the iOS fix reintroduced by pinning <code>slnt</code> on <code>html</code>. If
+	<code>app.css</code> ever adds such a pin back, this right half is how it would show up.
+</p>
+<div class="rows">
+	<section>
+		<h3>
+			Left: italic, no ancestor pin — SHIPPED. Right: same, under a pinned ancestor — stays upright
+		</h3>
+		<code class="css"
+			>font-style: italic &nbsp;vs&nbsp; (ancestor: font-variation-settings: 'slnt' 0) font-style:
+			italic</code
+		>
+		<div class="specimen">
+			<div class="half">
+				<span class="tag">no ancestor pin — correct</span>
+				<div class="sample m-oblique">VIZCHITRA</div>
+			</div>
+			<div class="half slnt-pinned-ancestor">
+				<span class="tag">nested under a slnt-pinned ancestor — broken on purpose</span>
+				<div class="sample m-oblique">VIZCHITRA</div>
+			</div>
+		</div>
 	</section>
 </div>
 
@@ -218,6 +250,13 @@
 		border-radius: var(--radius);
 		padding: 0.5rem 0.7rem;
 		overflow: hidden;
+	}
+
+	/* Reproduces the exact hazard: an ancestor stating 'slnt' explicitly. This
+	   must never live in app.css — it is only here to prove, on this device,
+	   that the pattern is still broken if anyone reintroduces it. */
+	.slnt-pinned-ancestor {
+		font-variation-settings: 'slnt' 0;
 	}
 
 	.tag {

@@ -85,10 +85,30 @@ function specimen(css: string) {
 	return el;
 }
 
-/** Horizontal offset between the ink's top and bottom, over their vertical gap. */
-async function shearOf(css: string): Promise<number> {
+/**
+ * Same as specimen(), but wrapped in an ancestor carrying its own CSS — to
+ * reproduce app.css's `html { font-variation-settings: 'slnt' 0 }` reset and
+ * check whether it blocks the automatic font-style -> slnt mapping for a
+ * descendant that asks for italic without restating font-variation-settings.
+ */
+function nestedSpecimen(ancestorCss: string, css: string) {
+	const wrapper = document.createElement('div');
+	wrapper.style.cssText = ancestorCss;
+	const el = document.createElement('div');
+	el.textContent = 'I';
+	el.style.cssText = `
+		position: fixed; top: 40px; left: 40px; z-index: 9999;
+		width: 200px; height: 260px; background: #fff; color: #000;
+		font-size: 200px; line-height: 1.1; font-kerning: none;
+		${css}
+	`;
+	wrapper.appendChild(el);
+	document.body.appendChild(wrapper);
+	return el;
+}
+
+async function shearOfEl(el: HTMLElement, root: HTMLElement = el): Promise<number> {
 	await document.fonts.ready;
-	const el = specimen(css);
 	try {
 		const shot = await page.screenshot({ element: el, base64: true });
 		const img = new Image();
@@ -125,8 +145,19 @@ async function shearOf(css: string): Promise<number> {
 		const dy = mean(bottom.map((r) => r.y)) - mean(top.map((r) => r.y));
 		return dx / dy;
 	} finally {
-		el.remove();
+		root.remove();
 	}
+}
+
+/** Horizontal offset between the ink's top and bottom, over their vertical gap. */
+function shearOf(css: string): Promise<number> {
+	return shearOfEl(specimen(css));
+}
+
+/** Same, with the specimen nested inside an ancestor carrying its own CSS. */
+function shearOfNested(ancestorCss: string, css: string): Promise<number> {
+	const el = nestedSpecimen(ancestorCss, css);
+	return shearOfEl(el, el.parentElement as HTMLElement);
 }
 
 const TECHNIQUES = [
@@ -209,6 +240,30 @@ describe('Cairo slant techniques', () => {
 			"font-family: 'CairoUpright'; font-style: italic; font-synthesis: none; font-variation-settings: 'slnt' -11;"
 		);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+});
+
+describe('why app.css must never pin slnt on an ancestor', () => {
+	beforeAll(injectFaces);
+
+	// app.css used to pin `html { font-variation-settings: 'slnt' 0 }` to fix
+	// the iOS Safari backslant (docs/compat.md), and it silently broke italic
+	// everywhere, on every engine, not just old iOS. Confirmed here, and kept
+	// as a permanent trap: font-variation-settings REPLACES the inherited
+	// value rather than merging, so an ancestor's EXPLICIT 'slnt' 0 blocks the
+	// automatic font-style -> slnt mapping that `font-style: italic` against
+	// the bare `oblique` face relies on. If this test ever starts failing
+	// because some engine changed that precedence, it's safe news, not a bug
+	// — but do not use it as license to bring the ancestor pin back; the
+	// correct fix stays component-level (axis-pinning.test.ts).
+	const PINNED_ANCESTOR = "font-variation-settings: 'slnt' 0;";
+
+	test('an ancestor pinning slnt blocks font-style: italic from ever slanting', async () => {
+		const shear = await shearOfNested(
+			PINNED_ANCESTOR,
+			"font-family: 'CairoOblique'; font-style: italic;"
+		);
+		expect(Math.abs(shear)).toBeLessThan(0.04);
 	});
 });
 
