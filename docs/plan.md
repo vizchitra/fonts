@@ -198,7 +198,7 @@ Establish provenance from the start so even Phase 1's Cairo is a known quantity:
   system Python — see the toolchain note above for why.
 - **`fonts.lock.json`** — for each file: family, source repo, exact release tag / version, source
   URL, and SHA-256.
-- **`scripts/fetch_fonts.py`**, run via `uv run` — downloads from the per-font sources in the
+- **`font-src/fetch.py`**, run via `uv run` — downloads from the per-font sources in the
   provenance table and verifies hashes, failing loudly on mismatch. Note Fira Code requires
   downloading and extracting the release **ZIP asset**, not a raw repo file.
 - Output is committed to `static/fonts/` so the site builds offline and deploys are reproducible —
@@ -230,7 +230,7 @@ export const WGHT_MIN = 200,
 ```
 
 Plus `SEED_CONFIG` carrying the LogoType values (`V -4, I 8, Z 0, C 2, H 7, T -6, R -8, A 0`) with
-`defaultSlant: 0`, and `GLYPH_SET` — the inspection set (A–Z, a–z, 0–9, punctuation, symbols) as
+`defaultSlant: 0`, and `GLYPH_GROUPS` — the inspection set (A–Z, a–z, 0–9, punctuation, symbols) as
 ordered named groups for the grid.
 
 **`slant.ts`** — the refactor of `formatSlantedText()`, now config-driven:
@@ -291,8 +291,9 @@ Large preview dominant, controls compact, testing below. Minimal chrome, no anim
   shows the span/kerning caveat whenever Retalics is on.
 - **Preview** — a `<textarea>` bound to `state.text` paired with the live render (more predictable
   input handling than `contenteditable`).
-- **`Comparison.svelte`** — three stacked rows on identical text/size/weight/tracking, labelled
-  _Cairo_ / _Cairo + global slnt_ / _Retalics_, using the same component in its three modes.
+- **Comparison rows** (inlined in `+page.svelte`, not a separate component) — three stacked rows on
+  identical text/size/weight/tracking, labelled _Cairo_ / _Cairo + global slnt_ / _Retalics_, using
+  the same component in its three modes.
 - **`PairGrid.svelte`** — the spec's pairs (`AV VA AW WA AY YA To Ta Te Ty Yo Wa Wo LT RT RA TA FA
 PA`) as a `const` in the data layer, plus an input for arbitrary pairs. Each cell renders the pair
   in Retalics and plain mode side by side.
@@ -440,7 +441,7 @@ typical page pays 44KB for Fira Code rather than 110KB while full coverage remai
 This is how "unmodified" is honoured without a payload regression: the **untouched upstream files are
 published as downloads** — that is what we redistribute _as the font_, and what Figma and archival
 use — while the web is served derived subsets that are documented, reproducible from
-`scripts/`, and provably lossless for ligatures and stylistic sets.
+`font-src/`, and provably lossless for ligatures and stylistic sets.
 
 Neither Plex nor Fira Code is renamed or re-versioned. Fira Code's `Fira Code Light` legacy name and
 300 default stay intact; the default weight is corrected in `fonts.css` with an explicit
@@ -514,7 +515,7 @@ point and make the catalogue `/`.
 - Confirm cache headers and that a `/v2/` path can coexist with `/v1/`.
 - Run `/compat` in real Safari, Chrome and Firefox; every shipped technique passes or has a
   documented workaround.
-- `uv run scripts/fetch_fonts.py` reproduces the committed bytes and every hash in `fonts.lock.json`
+- `uv run font-src/fetch.py` reproduces the committed bytes and every hash in `fonts.lock.json`
   verifies.
 - Fira Code renders at the intended weight, not Light, with the `fonts.css` default applied.
 - **Ligatures survive the split**: type `=>`, `!==`, `<$>`, `~~>` in a Fira Code sample and confirm
