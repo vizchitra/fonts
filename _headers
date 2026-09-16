@@ -13,5 +13,11 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /fonts/v1/manifest.json
+  ! Access-Control-Allow-Origin
   Access-Control-Allow-Origin: *
+  # Rules are additive, not overriding - without unsetting Cache-Control first,
+  # this stacks onto the /fonts/v1/* rule above instead of replacing it,
+  # producing a single header with two conflicting values. Measured with
+  # `wrangler dev` against the built worker before landing this fix.
+  ! Cache-Control
   Cache-Control: public, max-age=3600
