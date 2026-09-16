@@ -17,6 +17,10 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     environment: production
+    # Ships chromium/firefox/webkit preinstalled, matching our pinned
+    # `playwright` devDependency version — no `playwright install` step, no
+    # cache key to keep in sync with that version by hand.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -29,11 +33,6 @@ jobs:
 
       - name: Check (format, lint, typecheck, svelte)
         run: pnpm run check
-
-      # The browser project (*.browser.test.ts) drives real engines to measure
-      # rendered type. Without the binaries, `pnpm test` fails at launch.
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
 
       - name: Tests (node + Chromium/Firefox/WebKit)
         run: pnpm test
