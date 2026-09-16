@@ -1,9 +1,12 @@
-"""Generate src/lib/styles/fonts.css from the built subsets.
+"""Generate fonts.css from the built subsets.
 
     uv run font-src/css.py
 
 Generated, never hand-edited, so the @font-face blocks cannot drift from the
-files that actually exist in static/fonts/v1/.
+files that actually exist in static/fonts/v1/. Written to two places from one
+source: src/lib/styles/fonts.css for this site's own `@import`, and
+static/fonts/v1/fonts.css so external consumers have a stable, versioned URL
+to <link> directly - see docs/plan.md 2.1.
 
 Deliberately omits a synthetic Cairo italic. The old font.css declared one with
 a `font-variation-settings: 'slnt' -11` @font-face DESCRIPTOR, which is the
@@ -18,7 +21,7 @@ from ranges import css_range
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "static" / "fonts" / "v1"
-CSS = ROOT / "src" / "lib" / "styles" / "fonts.css"
+CSS_PATHS = [ROOT / "src" / "lib" / "styles" / "fonts.css", OUT_DIR / "fonts.css"]
 
 # basename -> (css family, weight range, extra descriptors)
 FACES = {
@@ -100,10 +103,14 @@ def main() -> int:
 				for sub in entry["subsets"]:
 					blocks.append(face(family, sub, weights, CAIRO_ITALIC, extra))
 
-	CSS.parent.mkdir(parents=True, exist_ok=True)
-	CSS.write_text("\n\n".join(blocks) + "\n")
+	text = "\n\n".join(blocks) + "\n"
+	for css in CSS_PATHS:
+		css.parent.mkdir(parents=True, exist_ok=True)
+		css.write_text(text)
+
 	faces = sum(len(e["subsets"]) for v in manifest.values() for e in v)
-	print(f"wrote {CSS.relative_to(ROOT)}  ({faces} @font-face blocks)")
+	for css in CSS_PATHS:
+		print(f"wrote {css.relative_to(ROOT)}  ({faces} @font-face blocks)")
 	return 0
 
 
