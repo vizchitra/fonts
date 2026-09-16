@@ -224,6 +224,52 @@ describe('Cairo slant techniques', () => {
 		}
 	});
 
+	test('the oblique-range trap is neutralised by font-synthesis: weight', async () => {
+		// This is why /compat's "trap" row can look correct on THIS site: html
+		// in app.css sets font-synthesis: weight globally, which forbids
+		// synthetic oblique. Chromium's failure mode was ENTIRELY a synthetic
+		// skew stacked on top of the (correctly mapped) real axis — remove the
+		// synthetic half and what's left is correct. WebKit's failure mode
+		// turns out to be the same shape: given the choice, it prefers to
+		// synthesise over consulting the axis; forbid synthesis and it falls
+		// back to the axis, which was correct all along.
+		//
+		// This does NOT make the range technique safe to ship in fonts.css —
+		// fonts.css controls the @font-face, not what font-synthesis a
+		// consumer sets. The bare oblique keyword needs no such cooperation:
+		// it measures correctly with or without this rule (see the technique
+		// above). That is the actual, sharper reason to prefer it.
+		const shear = await shearOf(
+			"font-family: 'CairoObliqueRange'; font-style: italic; font-synthesis: weight;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+
+	test('font-synthesis: weight style un-neutralises it, even under an ancestor pin', async () => {
+		// /compat's trap row needs to demonstrate the danger despite sitting
+		// under html's font-synthesis: weight. Two wrong turns first, both
+		// disproved against a real browser rather than assumed: `auto` is
+		// not a valid font-synthesis value, so the browser drops it
+		// silently and the row measured "correct" for the wrong reason.
+		// `revert` looked like the fix, but font-synthesis is an INHERITED
+		// property, and revert falls back to the inherited value (the
+		// ancestor's `weight`) when no lower-origin rule exists — so it
+		// re-inherits the very pin it was meant to escape, and the row
+		// stays "correct" again, still for the wrong reason (confirm this
+		// row's own SLANTED-ish result if `revert` is subbed back in).
+		// Stating the actual initial value explicitly is what works.
+		const shear = await shearOfNested(
+			'font-synthesis: weight;',
+			"font-family: 'CairoObliqueRange'; font-style: italic; font-synthesis: weight style;"
+		);
+		if (ENGINE === 'firefox') {
+			expect(shear).toBeCloseTo(SLANTED, 1);
+		} else {
+			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
+		}
+	});
+
 	test('asking for italic on a normal-declared face double-slants in every engine', async () => {
 		// font-style: italic on a family with no italic face makes the engine
 		// synthesise a skew, which then stacks on top of the real axis: ~0.44
@@ -243,7 +289,7 @@ describe('Cairo slant techniques', () => {
 	});
 });
 
-describe('why app.css must never pin slnt on an ancestor', () => {
+describe('an explicit slnt anywhere in the chain blocks italic', () => {
 	beforeAll(injectFaces);
 
 	// app.css used to pin `html { font-variation-settings: 'slnt' 0 }` to fix
@@ -264,6 +310,26 @@ describe('why app.css must never pin slnt on an ancestor', () => {
 			"font-family: 'CairoOblique'; font-style: italic;"
 		);
 		expect(Math.abs(shear)).toBeLessThan(0.04);
+	});
+
+	// The compounding bug: /compat's own `.sample` base class states 'slnt' 0
+	// on the SAME element as `.m-oblique`'s `font-style: italic` — no
+	// ancestor involved. A same-element explicit value blocks the automatic
+	// mapping just as hard as an inherited one, so every /compat row that
+	// didn't restate font-variation-settings itself (m-oblique, m-oblique-
+	// range, m-descriptor) was upright regardless of the ancestor-pin fix.
+	// `font-variation-settings: normal` on those classes releases it.
+	test('a same-element slnt override blocks italic, and `normal` releases it', async () => {
+		const SAMPLE_EQUIVALENT = "font-variation-settings: 'wght' 600, 'slnt' 0;";
+		const withoutRelease = await shearOf(
+			`font-family: 'CairoOblique'; ${SAMPLE_EQUIVALENT} font-style: italic;`
+		);
+		expect(Math.abs(withoutRelease)).toBeLessThan(0.04);
+
+		const withRelease = await shearOf(
+			`font-family: 'CairoOblique'; ${SAMPLE_EQUIVALENT} font-style: italic; font-variation-settings: normal;`
+		);
+		expect(withRelease).toBeGreaterThan(SLANTED - TOLERANCE);
 	});
 });
 
