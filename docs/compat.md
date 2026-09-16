@@ -5,6 +5,36 @@ Chromium, WebKit and Firefox under Vitest browser mode + Playwright, and asserts
 this matrix on every `pnpm test`. The `/compat` page remains for eyeballing real
 Safari, which Playwright's WebKit is not.
 
+## The bug that started this: iOS Safari backslant
+
+Reported on **Safari 18.7, iPhone XR**: Cairo renders leaning **backwards** when
+`slnt` is left to the font's default. Desktop Chrome and Safari are fine, so it
+only surfaces on an older device — the automated matrix below cannot catch it.
+
+**Cause.** `font-variation-settings` _replaces_ the inherited value rather than
+merging with it. Any rule that sets only `'wght'` silently discards an upright
+reset further up the tree, and the axis falls back to whatever the engine
+decides — which on old iOS is not upright. The `@font-face`
+`font-variation-settings` descriptor cannot fix this either: it measures 0.000
+in WebKit (see the table below), so it does nothing on exactly the browsers that
+need it.
+
+**Fix**, applied on `html` in `src/app.css`:
+
+```css
+font-variation-settings: 'slnt' 0; /* pin upright at the use site */
+font-synthesis: weight; /* allow faux bold, forbid faux oblique */
+```
+
+**The rule this implies.** Never write `font-variation-settings: 'wght' N` on
+its own for a font with a `slnt` axis — always restate `'slnt'`. `RetalicsText`
+does this even in `plain` mode, where omitting it would look harmless. `/compat`
+carries a permanent side-by-side of the unpinned and pinned cases so the bug can
+be re-checked on a real device after any change.
+
+This is also why the desktop matrix is necessary but not sufficient, and why the
+`/compat` page still exists alongside the automated tests.
+
 ## Why this needed measuring
 
 Cairo has no italic masters. Its "italic" is just `slnt -11`, so every way of

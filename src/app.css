@@ -35,6 +35,20 @@
 		line-height: 1.6;
 		color: var(--text);
 		background: var(--bg);
+
+		/* Pin the slant axis to upright explicitly, at the use site.
+		   Not belt-and-braces: on older iOS Safari (reported on 18.7, iPhone XR)
+		   Cairo renders BACKSLANTED when slnt is left to the font default. The
+		   @font-face `font-variation-settings` descriptor cannot fix it — that
+		   descriptor is measurably inert in WebKit (docs/compat.md) — so the reset
+		   has to happen here, where it works in every engine.
+		   Anything wanting slant overrides this explicitly. */
+		font-variation-settings: 'slnt' 0;
+
+		/* Allow synthesised weight, forbid synthesised oblique. Every engine fakes
+		   a 14deg skew when asked for italic on a face that has none, and Chromium
+		   stacks it on top of a real slnt axis. */
+		font-synthesis: weight;
 	}
 
 	a {
