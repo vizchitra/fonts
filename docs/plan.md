@@ -78,6 +78,17 @@ Notes that cost real time to establish and should not be re-derived:
   that finding holds.
 - Nothing is currently pinned or hash-verified, and copies have drifted: an older **Fira Code v5.2**
   sits in `/Users/amitkaps/code/fonts/raw/`.
+- **Cairo has no real Greek or Cyrillic support** — checked directly against the cmap: 0 Cyrillic
+  codepoints, 1 Greek (π, U+03C0, included as a math symbol, not script support). IBM Plex Sans and
+  Fira Code both have substantial real coverage (73/192 and 121/240 Greek/Cyrillic codepoints), which
+  is why only they get a `greek-cyrillic` subset — `font-src/subset.py` skips emitting a subset when
+  a family has fewer than 8 codepoints of real coverage in it. The four unicode-range buckets in
+  `font-src/ranges.py` are the same for every family; which blocks a family actually produces is the
+  font's own content, not an inconsistency in the pipeline. One acknowledged, accepted gap from this:
+  Cairo's lone π falls outside all four buckets (not in `greek-cyrillic`, since that block is skipped
+  entirely; not in any of the other three) and is therefore unreachable in any served subset, despite
+  being in the full 1956-glyph font. Left as-is — not worth a special-cased range for one glyph on a
+  Latin display font.
 
 Consequences that shape the plan:
 
