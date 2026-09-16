@@ -139,10 +139,21 @@
 		},
 		{
 			id: 'oblique-explicit',
-			title: 'font-style: italic against an oblique ANGLE RANGE — the trap',
-			css: 'font-style: italic; font-synthesis: weight style  (face declares: font-style: oblique 0deg 11deg)',
+			title: "font-style: oblique against the font's TRUE -11deg..11deg range — still the trap",
+			css: 'font-style: oblique; font-synthesis: weight style  (face declares: font-style: oblique -11deg 11deg)',
 			expect:
-				"Should lean the SAME as the recommended row above. Chromium leans roughly twice as far (a synthetic skew stacked on the real axis); WebKit leans a flat 14deg (it prefers synthesis over the axis). Only Firefox is correct. font-synthesis is forced back to weight+style here — this site's own font-synthesis: weight would otherwise neutralise the trap, which is real but conditional on a consumer NOT setting that rule. A different bug from the font-style-matching gap above (this one is about font-synthesis), not re-tested on a real device here.",
+				"-11deg..11deg is not an arbitrary or mismatched range — it's Cairo's actual fvar slnt " +
+				'bounds (min -11, default 0, max 11), the theoretically correct declaration once ' +
+				'font-style: oblique fully supersedes italic. Declaring the right bounds turns out not ' +
+				'to matter: should lean the SAME as the recommended row above, but Chromium leans ' +
+				'roughly twice as far (a synthetic skew stacked on the real axis) and WebKit prefers ' +
+				'synthesis over the axis and lands near the same overshoot. Only Firefox is correct. ' +
+				'Conclusion: the bug is triggered by declaring ANY oblique range in @font-face, correct ' +
+				'bounds or not — there is currently no safe way to declare a ranged oblique face; the ' +
+				'bare keyword (no angle, what fonts.css ships) remains the only technique that works ' +
+				"everywhere. font-synthesis is forced back to weight+style here — this site's own " +
+				'font-synthesis: weight would otherwise neutralise the trap by accident, which is real ' +
+				'but conditional on a consumer not setting that rule. Not re-tested on a real device.',
 			klass: 'm-oblique-range',
 			browsers: {
 				chromium: false,
@@ -262,10 +273,11 @@
 		},
 		{
 			id: 'oblique-range-face',
-			label: '@font-face { font-style: oblique 0deg 11deg } — the trap',
+			label: "@font-face { font-style: oblique -11deg 11deg } — the trap, the font's real bounds",
 			family: 'CairoObliqueRangeTest',
 			cells: {
 				none: { verdict: UPRIGHT_CONTROL },
+				italic: null,
 				// This site's own app.css sets font-synthesis: weight globally,
 				// which neutralises the trap by accident (docs/compat.md, "the
 				// oblique-range trap is neutralised by font-synthesis: weight").
@@ -273,8 +285,7 @@
 				// cell would render as a false pass, contradicting its own
 				// verdict badges below. Matches the css field on the
 				// 'oblique-explicit' SLANT_TESTS entry exactly.
-				italic: { verdict: find('oblique-explicit'), extraCss: 'font-synthesis: weight style;' },
-				oblique: null,
+				oblique: { verdict: find('oblique-explicit'), extraCss: 'font-synthesis: weight style;' },
 				slnt: null,
 				combo: null
 			}
@@ -383,6 +394,13 @@
 		<li>
 			For deterministic correctness across every version, pair it with an explicit
 			<code>font-variation-settings: 'slnt' -11</code>. That is the recommended pattern below.
+		</li>
+		<li>
+			Declaring an oblique <b>angle range</b> in <code>@font-face</code> (e.g.
+			<code>font-style: oblique -11deg 11deg</code>) is broken in Chromium and WebKit even at the
+			font's own true <code>slnt</code> bounds — confirmed it's not about picking the wrong range,
+			any range at all breaks it. The bare keyword (no angle), what <code>fonts.css</code> ships, is the
+			only technique that works everywhere. See the trap row below.
 		</li>
 	</ul>
 	<p class="tldr-note">

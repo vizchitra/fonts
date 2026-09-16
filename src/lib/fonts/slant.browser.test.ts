@@ -52,12 +52,17 @@ function injectFaces() {
 			font-weight: 200 1000;
 			font-style: oblique;
 		}
-		/* The same idea with an angle range, which is the trap. */
+		/* The same idea with an angle range, which is the trap. -11deg..11deg
+		   is not an arbitrary choice — it's the font's actual fvar slnt
+		   bounds (min -11, default 0, max 11), i.e. the theoretically
+		   correct "end state" declaration once font-style: oblique fully
+		   supersedes italic. Declaring the RIGHT bounds turns out not to
+		   matter: see the test below. */
 		@font-face {
 			font-family: 'CairoObliqueRange';
 			src: url('${FONT}') format('woff2');
 			font-weight: 200 1000;
-			font-style: oblique 0deg 11deg;
+			font-style: oblique -11deg 11deg;
 		}
 		@font-face {
 			font-family: 'CairoDescriptor';
@@ -219,17 +224,20 @@ describe('Cairo slant techniques', () => {
 		});
 	}
 
-	test('an oblique ANGLE RANGE is mishandled by Chromium and WebKit', async () => {
-		// The trap this whole file exists to document. `oblique 0deg 11deg` looks
-		// more precise than the bare keyword and is wrong in two of three engines:
-		// Chromium stacks a 14deg synthetic skew on top of the real axis (~0.44),
-		// WebKit drops the axis and synthesises instead (~0.25). Only Firefox is
-		// correct. Do not "improve" fonts.css into a range.
-		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: italic;");
+	test("an oblique ANGLE RANGE is mishandled, even at the font's own true bounds", async () => {
+		// The trap this whole file exists to document. `oblique -11deg 11deg`
+		// is not a mismatched or arbitrary range — it's Cairo's actual fvar
+		// slnt bounds — so this isn't "the range was wrong," it's "declaring
+		// ANY oblique range breaks it": Chromium stacks a ~0.44 synthetic
+		// skew on top of the real axis, WebKit prefers synthesis over the
+		// axis and lands near the same ~0.44. Only Firefox is correct
+		// (~0.194). Do not "improve" fonts.css into a range, correct bounds
+		// or not — the bare keyword (no angle) is the only technique that
+		// works everywhere.
+		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: oblique;");
 		if (ENGINE === 'firefox') {
 			expect(shear).toBeCloseTo(SLANTED, 1);
 		} else {
-			// Chromium lands near 0.44, WebKit near 0.25, correct is 0.194.
 			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
 		}
 	});
@@ -250,7 +258,7 @@ describe('Cairo slant techniques', () => {
 		// it measures correctly with or without this rule (see the technique
 		// above). That is the actual, sharper reason to prefer it.
 		const shear = await shearOf(
-			"font-family: 'CairoObliqueRange'; font-style: italic; font-synthesis: weight;"
+			"font-family: 'CairoObliqueRange'; font-style: oblique; font-synthesis: weight;"
 		);
 		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
@@ -271,7 +279,7 @@ describe('Cairo slant techniques', () => {
 		// Stating the actual initial value explicitly is what works.
 		const shear = await shearOfNested(
 			'font-synthesis: weight;',
-			"font-family: 'CairoObliqueRange'; font-style: italic; font-synthesis: weight style;"
+			"font-family: 'CairoObliqueRange'; font-style: oblique; font-synthesis: weight style;"
 		);
 		if (ENGINE === 'firefox') {
 			expect(shear).toBeCloseTo(SLANTED, 1);
