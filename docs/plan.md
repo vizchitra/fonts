@@ -78,17 +78,23 @@ Notes that cost real time to establish and should not be re-derived:
   that finding holds.
 - Nothing is currently pinned or hash-verified, and copies have drifted: an older **Fira Code v5.2**
   sits in `/Users/amitkaps/code/fonts/raw/`.
-- **Cairo has no real Greek or Cyrillic support** — checked directly against the cmap: 0 Cyrillic
-  codepoints, 1 Greek (π, U+03C0, included as a math symbol, not script support). IBM Plex Sans and
-  Fira Code both have substantial real coverage (73/192 and 121/240 Greek/Cyrillic codepoints), which
-  is why only they get a `greek-cyrillic` subset — `font-src/subset.py` skips emitting a subset when
-  a family has fewer than 8 codepoints of real coverage in it. The four unicode-range buckets in
-  `font-src/ranges.py` are the same for every family; which blocks a family actually produces is the
-  font's own content, not an inconsistency in the pipeline. One acknowledged, accepted gap from this:
-  Cairo's lone π falls outside all four buckets (not in `greek-cyrillic`, since that block is skipped
-  entirely; not in any of the other three) and is therefore unreachable in any served subset, despite
-  being in the full 1956-glyph font. Left as-is — not worth a special-cased range for one glyph on a
-  Latin display font.
+- **No `greek-cyrillic` subset is built for any family, on purpose.** Checked directly against the
+  cmap: Cairo has 0 Cyrillic codepoints and 1 Greek (π, U+03C0, a math symbol, not script support),
+  while IBM Plex Sans and Fira Code both have substantial real coverage (73/192 and 121/240
+  Greek/Cyrillic codepoints) — so a `greek-cyrillic` block _could_ be built for the latter two. It
+  isn't, because none of the sites this repo serves (`live`, `studio`, `differently`, `ticketing`,
+  `vizchitra`) render Cyrillic or Greek text. Google Fonts' own latin/latin-ext/cyrillic/greek split
+  is the right shape for a service serving the whole web; copying it here would ship a subset, a
+  manifest entry and a CSS block that could never be triggered by anything we actually serve. Group
+  by what the pages need, not by convention — see decision 15. `font-src/ranges.py`'s three remaining
+  buckets (`latin`, `latin-ext`, `symbols`) are still the same fixed ranges applied to every family;
+  `font-src/subset.py` skips emitting any bucket with fewer than 8 codepoints of real coverage
+  (why Cairo's `latin-ext` and `symbols` blocks are much smaller than the other two families', not
+  omitted). One accepted gap either way: Cairo's lone π was never in any of the three buckets and
+  remains unreachable in any served subset despite being in the full 1956-glyph font — not worth a
+  special-cased range for one glyph on a Latin display font. If a real Indic-script need shows up
+  (e.g. Devanagari for Plex), that is a **different font family** to pin and fetch, not a range to
+  add here — none of the three currently pinned fonts contain any Devanagari glyphs at all.
 
 Consequences that shape the plan:
 
@@ -123,11 +129,15 @@ font. Measured on Fira Code with `--layout-features='*'`:
 | **latin**                                              | **41.5KB** | **86/86** | **42**    | always                 |
 | latin-ext                                              | 12.6KB     | —         | 10        | on demand              |
 | symbols (arrows, math, box-drawing, blocks, geometric) | 10.9KB     | 4         | 2         | on demand              |
-| greek-cyrillic                                         | 28.8KB     | —         | —         | on demand              |
-| **total coverage**                                     | **93.8KB** |           |           | vs 110.4KB unsubsetted |
+| **total coverage**                                     | **65.0KB** |           |           | vs 110.4KB unsubsetted |
 
-A typical page downloads **41.5KB instead of 110.4KB — 62% less — while losing nothing**: the four
-files together cover more than the single full font and still total less than it. Figures are from
+No `greek-cyrillic` row: dropped for every family, not just Fira Code — see the provenance note
+above on why a subset that can never be triggered by anything we actually serve isn't shipped just
+because Google Fonts' own convention includes it.
+
+A typical page downloads **41.5KB instead of 110.4KB — 62% less — while losing nothing**: `latin`
+alone already covers everything a Latin-script page needs, `latin-ext` and `symbols` stay available
+on demand, and all three together still total less than the single unsplit font. Figures are from
 `static/fonts/v1/manifest.json` as built by `font-src/subset.py`; the same measurement for all three
 families, including a same-basis unsplit-woff2 comparison, is on the `/catalogue` page.
 
@@ -171,7 +181,7 @@ precisely that `RETA=1` matches the span prototype **while preserving kerning**.
 | 12  | **Fonts fetched from official sources against a pinned, hash-verified manifest**; built artifacts still committed. Each font has its _own_ source — see the provenance table.                                                                                                                                                                                                  |
 | 13  | **Phase 3 operates on the full unsubsetted Cairo VF** from `google/fonts`; we do our own subsetting.                                                                                                                                                                                                                                                                           |
 | 14  | **Plex Sans comes from Google's variable build**, documented as such, because IBM ships no variable font.                                                                                                                                                                                                                                                                      |
-| 15  | **Serve `unicode-range`-split subsets** (latin / latin-ext / symbols / greek-cyrillic) built with `--layout-features='*'`, and publish the untouched full fonts as downloads.                                                                                                                                                                                                  |
+| 15  | **Serve `unicode-range`-split subsets** (latin / latin-ext / symbols) built with `--layout-features='*'`, and publish the untouched full fonts as downloads. No `greek-cyrillic` bucket: group by what the sites we serve actually need, not by Google Fonts' convention — see the provenance note.                                                                            |
 | 16  | **Python via uv**, managed by mise. Never conda, never system Python.                                                                                                                                                                                                                                                                                                          |
 | 17  | **Phase 2 (Delivery) executes before Phase 3 (VizChitra Sans).** Delivery ships against Cairo now; `fonts.css` exposes the display family only through a CSS custom property, never a hardcoded `font-family`, so swapping to VizChitra Sans later is a one-line change in this repo, not a second migration across `live`, `studio`, `differently`, `ticketing`, `vizchitra`. |
 | 18  | **Tune by structural class, not by individual letter.** A new `structuralClass` generator seeds `glyphSlants`/sidebearings by group (Stems, Diagonals, Rounds, Bowls, Curves, Lowercase core, Ascenders, Descenders, Narrow, Wide — see 1.8); per-glyph editing still overrides the group value for exceptions. Does not replace decision 1, extends it.                       |
@@ -447,9 +457,12 @@ exist yet — plus **IBM Plex Sans** and **Fira Code** unmodified. When Phase 3 
 replaced by VizChitra Sans in `fonts.css` alone; see the indirection requirement in 2.1.
 
 **Delivery format for all three families** is the `unicode-range` split measured above: `latin`,
-`latin-ext`, `symbols` and `greek-cyrillic` `@font-face` blocks pointing at separate woff2 files, all
-built with `--layout-features='*'`. The browser downloads only the blocks a page actually needs, so a
-typical page pays 44KB for Fira Code rather than 110KB while full coverage remains available.
+`latin-ext` and `symbols` `@font-face` blocks pointing at separate woff2 files, all built with
+`--layout-features='*'`. No `greek-cyrillic` block — none of the sites this repo serves render
+Cyrillic or Greek text, so that range is omitted rather than shipped as dead weight; see the
+provenance note and decision 15. The browser downloads only the blocks a page actually needs, so a
+typical page pays 41.5KB for Fira Code rather than 110.4KB while full Latin-script coverage remains
+available.
 
 This is how "unmodified" is honoured without a payload regression: the **untouched upstream files are
 published as downloads** — that is what we redistribute _as the font_, and what Figma and archival
@@ -620,8 +633,13 @@ spans**, beside the span prototype at the same config.
 - Whether VizChitra Sans should add a `calt` feature of its own, once the lab shows whether
   contextual alternates are useful.
 - Whether `RETA` ends up continuous (0–1) or a discrete on/off — Phase 1 should answer this.
-- Whether a Greek/Cyrillic split for Fira Code is worth publishing at all, or whether those 30KB
-  should simply be omitted until someone needs them.
+- ~~Whether a Greek/Cyrillic split for Fira Code is worth publishing at all~~ — **resolved**: omitted
+  for all three families, not published for any of them. See decision 15 and the provenance note.
+- Whether real Devanagari support is worth adding for IBM Plex Sans. None of the three currently
+  pinned fonts contain any Devanagari glyphs — this would mean pinning and fetching **IBM Plex Sans
+  Devanagari**, a genuinely separate font family in the Plex superfamily, through the same
+  provenance pipeline as the other three, not a subsetting change. Not pursued now; revisit if a real
+  Devanagari-content page shows up.
 - Whether Cairo's Arabic coverage should eventually be re-added to VizChitra Sans. We now build from
   the full 1956-glyph font, so this is a ranges parameter rather than a rebuild.
 - **Latin Extended inheritance rules** (decision 19) — which accented letters can simply inherit

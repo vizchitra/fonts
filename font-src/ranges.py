@@ -24,13 +24,18 @@ LATIN_EXT = (
 # dingbats. Matters for a code font: terminal output and README trees.
 SYMBOLS = "U+2190-21FF,U+2200-22FF,U+2500-257F,U+2580-259F,U+25A0-25FF,U+2700-27BF"
 
-GREEK_CYRILLIC = "U+0370-03FF,U+0400-04FF"
-
+# No greek-cyrillic bucket: this is not a Google-Fonts-style catch-all for the
+# whole web, it is a fixed set of known sites (live, studio, differently,
+# ticketing, vizchitra), and none of them render Cyrillic or Greek text.
+# IBM Plex Sans and Fira Code both have substantial real coverage (measured:
+# see docs/plan.md), so this was previously built and shipped as dead weight -
+# a manifest entry and CSS block that could never be triggered by anything we
+# actually serve. Group by what pages need, not by convention. If a real need
+# shows up, add the range back with the same measured-coverage discipline.
 SUBSETS = {
 	"latin": LATIN,
 	"latin-ext": LATIN_EXT,
 	"symbols": SYMBOLS,
-	"greek-cyrillic": GREEK_CYRILLIC,
 }
 
 # CSS unicode-range needs spaces after commas and no U+ escaping issues.

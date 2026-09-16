@@ -62,6 +62,12 @@ def main() -> int:
 	args = ap.parse_args()
 
 	OUT.mkdir(parents=True, exist_ok=True)
+	# Wipe previous output first: the manifest is fully rewritten every run, but
+	# individual .woff2 files were not, so a subset removed from ranges.SUBSETS
+	# (e.g. greek-cyrillic) would otherwise linger on disk and keep being
+	# served forever after the code stopped generating or referencing it.
+	for stale in OUT.glob("*.woff2"):
+		stale.unlink()
 	manifest: dict[str, list[dict]] = {}
 
 	for key, entries in SOURCES.items():
