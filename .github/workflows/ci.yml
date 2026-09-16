@@ -21,6 +21,11 @@ jobs:
     # `playwright` devDependency version — no `playwright install` step, no
     # cache key to keep in sync with that version by hand.
     container: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      # GitHub Actions sets HOME=/github/home for containers, owned by
+      # `pwuser`, but this image runs as root — Firefox refuses to launch
+      # as root in a $HOME it doesn't own. Documented Playwright workaround.
+      HOME: /root
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
