@@ -5,8 +5,13 @@
    upstream; see docs/plan.md.
 
    Fira Code's own family name is "Fira Code Light" and its wght axis defaults
-   to 300, so anything using it must set an explicit font-weight or it renders
-   Light. That is upstream's naming, not a packaging mistake here. */
+   to 300 internally - that is upstream's naming, not a packaging mistake here.
+   It does NOT mean an unset font-weight renders Light: the @font-face block
+   below declares font-weight as a 300..700 RANGE, so the CSS initial value
+   (400, "normal") falls inside it and an unset weight resolves to 400, not
+   the font's internal default. Measured in all three engines, bit-identical
+   to an explicit font-weight: 400 - src/lib/fonts/fira-code.browser.test.ts.
+   The risk would only be real if this range descriptor were dropped. */
 
 
 
