@@ -41,24 +41,47 @@ code, pre { font-family: var(--font-mono); }`}</code
 	though it resolves to the same family today.
 </p>
 
-<h3>Cairo's italic needs one extra line</h3>
+<h3>Cairo's italic needs two exact things, not one</h3>
 <p>
-	Cairo has no italic masters — its italic <i>is</i> the <code>slnt</code> axis — and real Safari
-	does not reliably perform the automatic <code>font-style</code> → <code>slnt</code> mapping this
-	depends on (version-dependent; see <a href="/compat">/compat</a> for the full matrix). Pair
-	<code>font-style</code> with an explicit axis value rather than relying on
-	<code>font-style: italic</code> alone:
+	Cairo has no italic masters — its italic <i>is</i> the <code>slnt</code> axis, and the
+	<code>@font-face</code> declares its true range (<code>-11deg</code> to <code>11deg</code>). Two
+	separate problems make a bare <code>font-style: italic</code> or bare
+	<code>font-style: oblique</code> unsafe, and one pattern fixes both — see
+	<a href="/compat">/compat</a> for the full matrix and the measurements behind this:
 </p>
 <pre><code
 		>{`.italic {
-  font-style: oblique;
+  font-style: oblique 11deg;
   font-variation-settings: 'slnt' -11;
 }`}</code
 	></pre>
 <p>
-	<code>font-style: oblique</code> stays for semantics and forward-compatibility; the explicit
-	<code>slnt</code> value is what makes it render correctly on every engine and version today.
+	State the <b>exact angle</b>, <code>11deg</code>, not a bare keyword: CSS's implied default for
+	"no angle stated" is 14deg, which falls outside this face's declared range and trips a
+	Chromium/WebKit synthesis bug — stating the angle the face actually supports avoids it entirely.
+	Then pair it with the <b>explicit axis value</b>: real Safari 18.7 performs no automatic
+	<code>font-style</code> → <code>slnt</code> mapping at all, exact angle or not, so the axis has to
+	be set directly regardless of what font-style-matching would do. Drop either half and it breaks on
+	at least one real, tested engine or device — confirmed on real Safari 18.7 <i>and</i> 27.0, not just
+	Chromium/Firefox/WebKit automation.
 </p>
+
+<h3>Frameworks may only expose <code>italic</code></h3>
+<p>
+	Tailwind's typography utilities are built around <code>italic</code>/<code>not-italic</code>,
+	which map to <code>font-style: italic</code>/<code>normal</code> — there is no built-in
+	<code>oblique</code> or axis-aware utility. Font declaration and framework usage are two separate
+	problems: Cairo is correctly declared as an oblique face, but a framework's default italic utility
+	still doesn't express the exact pattern above. Don't repurpose <code>.italic</code> — define a project
+	utility instead:
+</p>
+<pre><code
+		>{`@utility font-oblique {
+  font-style: oblique 11deg;
+  font-variation-settings: 'slnt' -11;
+}`}</code
+	></pre>
+<pre><code>{`<p class="font-oblique">…</p>`}</code></pre>
 
 <h3>Fira Code: weight and ligatures</h3>
 <p>

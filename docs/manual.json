@@ -50,7 +50,7 @@
 				"firefox": true,
 				"webkit": false
 			},
-			"old": null,
+			"old": false,
 			"new": false,
 			"notes": "wired into +page.svelte"
 		},
@@ -78,7 +78,7 @@
 				"firefox": true,
 				"webkit": false
 			},
-			"old": null,
+			"old": false,
 			"new": false,
 			"notes": "new already device-confirmed on the page"
 		},
@@ -92,7 +92,7 @@
 				"firefox": true,
 				"webkit": false
 			},
-			"old": null,
+			"old": false,
 			"new": false,
 			"notes": "new already device-confirmed on the page; tested against the shipped family (normal + oblique faces together)"
 		},
@@ -106,7 +106,7 @@
 				"firefox": true,
 				"webkit": true
 			},
-			"old": null,
+			"old": false,
 			"new": true,
 			"notes": "wired into +page.svelte"
 		},
@@ -120,7 +120,7 @@
 				"firefox": true,
 				"webkit": true
 			},
-			"old": null,
+			"old": true,
 			"new": true,
 			"notes": "wired into +page.svelte - upgraded from reasoned to confirmed"
 		},
@@ -134,7 +134,7 @@
 				"firefox": true,
 				"webkit": true
 			},
-			"old": null,
+			"old": true,
 			"new": true,
 			"notes": "wired into +page.svelte (EXPLICIT_SLNT_ANYWHERE) - upgraded from reasoned to confirmed"
 		},
@@ -148,7 +148,7 @@
 				"firefox": true,
 				"webkit": true
 			},
-			"old": null,
+			"old": true,
 			"new": true,
 			"notes": "wired into +page.svelte - upgraded from reasoned to confirmed"
 		},
@@ -162,7 +162,7 @@
 				"firefox": true,
 				"webkit": true
 			},
-			"old": null,
+			"old": true,
 			"new": true,
 			"notes": "new already device-confirmed on the page"
 		}

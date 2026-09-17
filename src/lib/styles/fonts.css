@@ -45,25 +45,41 @@
 }
 
 /* Cairo italic. The font has no italic masters - "italic" IS slnt -11 - so these
-   reuse the upright files with an oblique style descriptor.
+   reuse the upright files with an oblique style descriptor declaring the
+   font's TRUE range (-11deg 11deg), not a bare keyword.
 
-   The bare `oblique` keyword is deliberate and load-bearing. Verified in
-   Chromium, WebKit and Firefox by src/lib/fonts/slant.browser.test.ts, which
-   measures the actual rendered shear; results in docs/compat.md. Adding an angle
-   range breaks it in two of three engines: Chromium stacks a synthetic skew on
-   top of the real axis, WebKit drops the axis and synthesises instead.
+   REQUIRED use-site pattern - this is not optional, for two SEPARATE reasons:
 
-   DO NOT rely on `font-style: italic` alone for correct rendering. Confirmed on
-   a real iPhone XR (Safari 18.7): that engine does not perform the automatic
-   font-style -> slnt mapping this descriptor enables AT ALL, pin or no pin -
-   Playwright's WebKit is a different, newer build that does, which is why this
-   didn't show up in the automated test suite. Set the axis directly instead:
-
+       font-style: oblique 11deg;
        font-variation-settings: 'slnt' -11;
 
-   at the use site, alongside font-style: italic if you like (harmless, purely
-   semantic once the explicit value is present - it wins over any automatic
-   mapping). See docs/compat.md, "The second real-device finding".
+   1. The angle must be EXACT (11deg), not bare `font-style: oblique` or
+      `italic`. CSS's implied default angle for "no angle stated" is 14deg
+      (italic's is spec-unspecified, but measures the same in practice) -
+      both fall OUTSIDE this face's declared bounds, so Chromium and WebKit
+      fall back to synthesis on top of the axis, landing at roughly twice
+      the correct shear. Only Firefox tolerates the bare/unspecified form
+      against a ranged face. Verified in all three engines by
+      src/lib/fonts/slant.browser.test.ts, including against a family
+      carrying both this face and the normal-style face together - the
+      shape this file actually generates, not an isolated face with no
+      sibling.
+
+   2. Even the exact angle alone is not deterministic across the field:
+      confirmed on a real iPhone XR (Safari 18.7) that this engine performs
+      NO automatic font-style -> slnt mapping at all, exact angle or not -
+      Playwright's WebKit is a different, newer build that does, which is
+      why this gap doesn't show up in the automated test suite. The
+      explicit 'slnt' -11 covers that: an element's own font-variation-
+      settings value always wins over whatever the automatic mapping would
+      or wouldn't do, so the combo is correct regardless of which half a
+      given engine honours. Confirmed by hand on real Safari 18.7 AND
+      27.0 - see docs/manual.json and /compat.
+
+   The bare `oblique` keyword this file used to ship remains correct too,
+   against a face with no declared range - but requires no use-site angle
+   discipline, which is exactly why it was the safer default until this
+   migration. See docs/use, "Cairo's italic," for the full explanation.
 
    The previous hand-written font.css used a `font-variation-settings: 'slnt' -11`
    @font-face DESCRIPTOR, which silently does nothing at all in WebKit/Safari. */
@@ -72,7 +88,7 @@
 	font-family: 'Cairo';
 	src: url('/fonts/v1/Cairo-Variable-latin.woff2') format('woff2');
 	font-weight: 200 1000;
-	font-style: oblique;
+	font-style: oblique -11deg 11deg;
 	font-display: swap;
 	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -81,7 +97,7 @@
 	font-family: 'Cairo';
 	src: url('/fonts/v1/Cairo-Variable-latin-ext.woff2') format('woff2');
 	font-weight: 200 1000;
-	font-style: oblique;
+	font-style: oblique -11deg 11deg;
 	font-display: swap;
 	unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
@@ -90,7 +106,7 @@
 	font-family: 'Cairo';
 	src: url('/fonts/v1/Cairo-Variable-symbols.woff2') format('woff2');
 	font-weight: 200 1000;
-	font-style: oblique;
+	font-style: oblique -11deg 11deg;
 	font-display: swap;
 	unicode-range: U+2190-21FF, U+2200-22FF, U+2500-257F, U+2580-259F, U+25A0-25FF, U+2700-27BF;
 }

@@ -119,7 +119,23 @@ those two, not this table.
 | GPOS kerning toggles via `font-kerning`                         |       ✅ |        ✅ |      ✅ |                                       |
 | `slnt` changes advance width                                    |       no |        no |      no | why pixels are needed                 |
 
-## Decision
+## Decision — UPDATED, see /compat for the current, full account
+
+**This section is superseded.** Everything below the update note is the historical record of how the
+decision below was reached — kept because the reasoning (three wrong turns on `font-synthesis`, the
+Chromium/WebKit synthesis-stacking mechanism) is still correct and still load-bearing. But the bare
+`oblique` decision it ends on has been reversed: `font-src/css.py` now ships
+`font-style: oblique -11deg 11deg` (the font's true range), not the bare keyword. That reversal
+happened because "declaring any oblique range breaks it, correct bounds or not" turned out to be an
+overclaim — the actual trap is specifically the BARE keyword's implied 14deg default falling outside
+a declared range. Stating the EXACT angle a range covers resolves correctly in every engine, including
+against a family carrying a normal-style sibling face (the real shape `font-src/css.py` generates,
+not an isolated face with no sibling). The current, complete decision — including why the exact angle
+alone still isn't enough (real Safari 18.7 performs no automatic mapping at all) and the required
+use-site pattern — is `font-style: oblique 11deg` + explicit `font-variation-settings: 'slnt' -11`,
+documented in full with real-device confirmation on `/compat` (`oblique-range-combo`, the RECOMMENDED
+row) and `docs/manual.json`. Don't take the paragraphs below as current guidance for what to ship or
+write.
 
 **Consumers must set `font-variation-settings: 'slnt' -11` explicitly at the use site for italic
 Cairo — do not rely on `font-style: italic` alone.** See "The second real-device finding" above:
@@ -133,9 +149,10 @@ The paragraphs below are a separate, still-valid decision about the `@font-face`
 write." Both decisions apply at once: a bare `oblique` descriptor at the face level, and an explicit
 `slnt` value at every use site.
 
-**Ship `font-style: oblique` — the bare keyword, no angle range.** It is the only
-`@font-face`-level technique that is correct in all three engines with no extra
-CSS at the use site. This is what `font-src/css.py` emits.
+**[SUPERSEDED — see the update note above] Ship `font-style: oblique` — the bare keyword, no angle
+range.** It is the only `@font-face`-level technique that is correct in all three engines with no
+extra CSS at the use site. This is what `font-src/css.py` used to emit, before the migration to a
+declared range.
 
 Do not "improve" it into an angle range. `oblique 0deg 11deg` looks more precise
 and is wrong twice over:

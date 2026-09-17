@@ -45,29 +45,31 @@ function injectFaces() {
 			font-weight: 200 1000;
 			font-style: normal;
 		}
-		/* The bare keyword — what fonts.css ships. */
+		/* The bare keyword — what fonts.css shipped BEFORE the migration to a
+		   declared range (font-src/css.py, CAIRO_ITALIC). Kept as the
+		   historical comparison point; CairoBoth/CairoBothRanged below are
+		   what matters for the real, currently-shipped family. */
 		@font-face {
 			font-family: 'CairoOblique';
 			src: url('${FONT}') format('woff2');
 			font-weight: 200 1000;
 			font-style: oblique;
 		}
-		/* The same idea with an angle range, which is the trap. -11deg..11deg
-		   is not an arbitrary choice — it's the font's actual fvar slnt
-		   bounds (min -11, default 0, max 11), i.e. the theoretically
-		   correct "end state" declaration once font-style: oblique fully
-		   supersedes italic. Declaring the RIGHT bounds turns out not to
-		   matter: see the test below. */
+		/* The same idea with an angle range - -11deg..11deg is the font's
+		   actual fvar slnt bounds (min -11, default 0, max 11), and what
+		   fonts.css now ships (CAIRO_ITALIC). This is the trap for the BARE
+		   keyword specifically: see the test below. */
 		@font-face {
 			font-family: 'CairoObliqueRange';
 			src: url('${FONT}') format('woff2');
 			font-weight: 200 1000;
 			font-style: oblique -11deg 11deg;
 		}
-		/* Same family carrying BOTH a normal and an oblique face, like the real
-		   generated fonts.css does - unlike CairoOblique above, which has no
-		   normal sibling. That sibling changes matching: see the
-		   'oblique 11deg against the shipped family' technique below. */
+		/* Same family carrying BOTH a normal and a BARE oblique face - the
+		   OLD shipped shape, before the migration to a declared range.
+		   Unlike CairoOblique above (no normal sibling), this reproduces the
+		   face-selection ambiguity bug: see 'against a family with BOTH
+		   normal and BARE oblique' below. */
 		@font-face {
 			font-family: 'CairoBoth';
 			src: url('${FONT}') format('woff2');
@@ -79,6 +81,22 @@ function injectFaces() {
 			src: url('${FONT}') format('woff2');
 			font-weight: 200 1000;
 			font-style: oblique;
+		}
+		/* The REAL shape fonts.css now ships (font-src/css.py splits normal
+		   and oblique into separate @font-face blocks referencing the same
+		   file, same family): normal + a RANGED oblique face together, not
+		   normal + a bare oblique face like CairoBoth above. */
+		@font-face {
+			font-family: 'CairoBothRanged';
+			src: url('${FONT}') format('woff2');
+			font-weight: 200 1000;
+			font-style: normal;
+		}
+		@font-face {
+			font-family: 'CairoBothRanged';
+			src: url('${FONT}') format('woff2');
+			font-weight: 200 1000;
+			font-style: oblique -11deg 11deg;
 		}
 		@font-face {
 			font-family: 'CairoDescriptor';
@@ -192,7 +210,7 @@ const TECHNIQUES = [
 		label: 'font-style: italic against a bare `oblique` face',
 		css: "font-family: 'CairoOblique'; font-style: italic;",
 		worksIn: ALL,
-		note: 'What the generated fonts.css ships. Correct in all three engines, but real Safari 18.7 does not do it at all (docs/compat.md) - Playwright cannot reproduce that gap.'
+		note: 'What fonts.css shipped BEFORE the migration to a declared range - now historical. Correct in all three engines, but real Safari 18.7 does not do it at all (docs/compat.md) - Playwright cannot reproduce that gap.'
 	},
 	{
 		label: 'font-style: oblique (bare, no angle) against a bare `oblique` face',
@@ -211,17 +229,19 @@ const TECHNIQUES = [
 		note: 'Firefox maps the angle onto slnt; Chromium and WebKit ignore it entirely. Do not use.'
 	},
 	{
-		label: 'font-style: oblique 11deg against the shipped family (normal + oblique faces)',
+		label:
+			'font-style: oblique 11deg against a family with BOTH normal and BARE oblique (historical)',
 		css: "font-family: 'CairoBoth'; font-style: oblique 11deg;",
 		worksIn: ['firefox'],
 		note:
 			"CSS Fonts 4: OpenType's slnt axis is positive counter-clockwise, CSS's oblique angle is " +
 			"positive clockwise, so `oblique 11deg` SHOULD resolve to 'slnt' -11 - the same target as " +
 			'the recommended row, reached via matching instead of an explicit axis value. It does, in ' +
-			'Firefox. CairoBoth carries both a normal AND an oblique face under one family, matching ' +
-			"fonts.css's actual structure (unlike CairoOblique above, which is oblique-only and made " +
-			'this look like it worked everywhere - a measurement artifact, caught by comparing against ' +
-			'the real /compat page: Chromium and WebKit pick the wrong face when a normal sibling ' +
+			'Firefox. CairoBoth carries both a normal AND a BARE oblique face under one family, ' +
+			"matching fonts.css's OLD structure before the migration to a declared range (unlike " +
+			'CairoOblique above, which is oblique-only and made this look like it worked everywhere - ' +
+			'a measurement artifact, caught by comparing against the real /compat page: Chromium and ' +
+			'WebKit pick the wrong face when a normal sibling ' +
 			'exists and render upright, shear +0/-0, not even a partial lean. Do not use.'
 	},
 	{
@@ -266,10 +286,11 @@ describe('Cairo slant techniques', () => {
 		// Correction from an earlier version of this comment: this is NOT
 		// "declaring any oblique range breaks it, correct bounds or not" —
 		// stating the EXACT angle the range covers (11deg, not bare) resolves
-		// correctly in every engine (see the technique below). Do not "improve"
-		// fonts.css into a range regardless: the bare keyword remains the only
-		// technique that's correct WITHOUT requiring every consumer to also
-		// discover and state the exact angle at every use site.
+		// correctly in every engine (see the technique below). fonts.css now
+		// ships exactly this range (font-src/css.py, CAIRO_ITALIC) precisely
+		// because pairing the exact angle with an explicit slnt value covers
+		// BOTH this trap and real Safari 18.7's total lack of automatic
+		// mapping - see 'oblique-range-combo' on /compat for the reasoning.
 		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: oblique;");
 		if (ENGINE === 'firefox') {
 			expect(shear).toBeCloseTo(SLANTED, 1);
@@ -288,15 +309,12 @@ describe('Cairo slant techniques', () => {
 		// synthesise over consulting the axis; forbid synthesis and it falls
 		// back to the axis, which was correct all along.
 		//
-		// This does NOT make the range technique safe to ship in fonts.css for
-		// the BARE keyword — fonts.css controls the @font-face, not what
+		// This does NOT make the BARE keyword safe against the ranged face
+		// fonts.css now ships — fonts.css controls the @font-face, not what
 		// font-synthesis a consumer sets, and the bare keyword still needs
 		// the exact angle stated instead to be reliable (see the technique
-		// below). The bare oblique keyword against the OTHER face (no range)
-		// needs no such cooperation: it measures correctly with or without
-		// this rule (see the technique above, against CairoOblique). That is
-		// the actual, sharper reason fonts.css ships that face, not a ranged
-		// one, as the default for consumers who won't state an exact angle.
+		// below). That's exactly why the REQUIRED use-site pattern pairs the
+		// exact angle with an explicit slnt value, not the bare keyword.
 		const shear = await shearOf(
 			"font-family: 'CairoObliqueRange'; font-style: oblique; font-synthesis: weight;"
 		);
@@ -339,8 +357,8 @@ describe('Cairo slant techniques', () => {
 		// correctly, in every engine, whether or not synthesis is allowed.
 		// Caught by a real discrepancy between this file and a live check
 		// of /compat in an actual Chrome/Safari, not by reasoning about the
-		// spec - see 'against the shipped family' above for the sibling
-		// finding that started this.
+		// spec - see 'against a family with BOTH normal and BARE oblique'
+		// above for the sibling finding that started this.
 		const withSynthesis = await shearOf(
 			"font-family: 'CairoObliqueRange'; font-style: oblique 11deg;"
 		);
@@ -411,6 +429,45 @@ describe('Cairo slant techniques', () => {
 			"font-family: 'CairoUpright'; font-style: italic; font-synthesis: none; font-variation-settings: 'slnt' -11;"
 		);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+
+	test('oblique 11deg alone still resolves correctly with a normal sibling face present', async () => {
+		// The face-selection bug in 'oblique 11deg against a family with BOTH
+		// normal and BARE oblique' above is specific to a BARE oblique descriptor competing with a
+		// normal sibling - ambiguous, because bare oblique declares no bounds
+		// for the matching algorithm to prefer it unambiguously for an angled
+		// request. A RANGED oblique descriptor that explicitly covers the
+		// requested angle removes that ambiguity: this is the actual shape
+		// shipping the migration-path pattern would produce (css.py splits
+		// normal and oblique into separate @font-face blocks referencing the
+		// same file, same family), not the isolated CairoObliqueRange face
+		// used elsewhere in this file. Measured before trusting it, because
+		// the isolated-face assumption has been wrong before this session.
+		const shear = await shearOf("font-family: 'CairoBothRanged'; font-style: oblique 11deg;");
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+
+	test('the migration-path combo also resolves correctly with a normal sibling face present', async () => {
+		const shear = await shearOf(
+			"font-family: 'CairoBothRanged'; font-style: oblique 11deg; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+
+	test('bare oblique against normal+ranged-oblique together is still the same trap', async () => {
+		// The normal sibling doesn't change the bare-keyword trap either: same
+		// ~0.44 double-stack in Chromium/WebKit as the isolated ranged face
+		// (CairoObliqueRange) elsewhere in this file. Confirms the trap and
+		// the fix are both about the ANGLE, not about face-selection ambiguity
+		// - a normal sibling changes neither.
+		const shear = await shearOf("font-family: 'CairoBothRanged'; font-style: oblique;");
+		if (ENGINE === 'firefox') {
+			expect(shear).toBeCloseTo(SLANTED, 1);
+		} else {
+			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
+		}
 	});
 
 	test('the font-weight PROPERTY never disturbs an explicit slnt value', async () => {
