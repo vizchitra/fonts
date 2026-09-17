@@ -532,8 +532,13 @@ Still to check, by the same method where possible:
   `slant.browser.test.ts`'s shear-not-width finding, on a different axis).
 - `font-kerning` interaction with `letter-spacing`.
 - Whether a custom axis (`RETA`) is honoured through `font-variation-settings` in every engine.
-- Lazy loading: a latin-only page should fetch only the `latin` subset; adding a box-drawing
-  character should pull `symbols` and nothing else.
+- ~~Lazy loading: a latin-only page should fetch only the `latin` subset; adding a box-drawing
+  character should pull `symbols` and nothing else.~~ Confirmed in
+  `src/lib/fonts/lazy-loading.browser.test.ts`, all three engines: a latin-only page fetches
+  exactly `Cairo-Variable-latin.woff2`; adding U+2500 pulls exactly `Cairo-Variable-symbols.woff2`,
+  neither ever touches `latin-ext`. Real WebKit resolves `document.fonts.ready` before the fetch
+  even appears in resource timing — Chromium and Firefox already have it by then — so the test
+  polls the actual network entry instead of trusting that signal alone.
 
 `fonts.css` is generated from `font-src/css.py` and written **from recorded results**, never from
 best-practice memory.
@@ -567,8 +572,9 @@ point and make the catalogue `/`.
 - Fira Code renders at the intended weight, not Light, with the `fonts.css` default applied.
 - **Ligatures survive the split**: type `=>`, `!==`, `<$>`, `~~>` in a Fira Code sample and confirm
   they form. Confirm a stylistic set (e.g. `ss01` alternate `a`, `zero` slashed zero) still applies.
-- **Lazy loading works**: in devtools, a latin-only page fetches only the `latin` file; adding a
-  box-drawing character triggers the `symbols` fetch and nothing else.
+- ~~**Lazy loading works**: in devtools, a latin-only page fetches only the `latin` file; adding a
+  box-drawing character triggers the `symbols` fetch and nothing else.~~ Automated in
+  `src/lib/fonts/lazy-loading.browser.test.ts`.
 - Install the `.ttf`s and confirm VizChitra Sans appears in Figma with the expected weights.
 
 ---
