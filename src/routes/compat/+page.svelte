@@ -5,6 +5,17 @@
 	import safariLogo from '#lib/assets/browsers/safari.svg';
 	import webkitLogo from '#lib/assets/browsers/webkit.svg';
 
+	// The exact bundled browser versions behind chromium/firefox/webkit's
+	// automated `true`/`false` verdicts — this repo's pinned Playwright
+	// (package.json, playwright@1.63.0), checked directly via
+	// `browser.version()` rather than assumed from the Playwright release
+	// number. Kept as one place to update if that pin ever changes.
+	const PLAYWRIGHT_VERSIONS = {
+		chromium: '153.0.8010.12',
+		firefox: '155.0',
+		webkit: '26.6'
+	};
+
 	// Techniques for slanting Cairo, which has no italic masters. Judged by eye:
 	// slnt barely changes advance widths (Cairo's 'I' moves 248 -> 249 units per
 	// 1000), so no width measurement can detect slant. The upright control sits
@@ -62,14 +73,15 @@
 				'27.0 (see the two rows below). The explicit slnt value is what makes it deterministic ' +
 				'today, on every version, without waiting for old Safari to disappear from the field: ' +
 				"an element's own explicit font-variation-settings always wins over any automatic " +
-				'mapping, so whichever half an engine honours, the other covers it.',
+				'mapping, so whichever half an engine honours, the other covers it. Confirmed by hand ' +
+				'on real Safari 27.0, not just reasoned from the mechanism.',
 			klass: 'm-recommended',
 			browsers: {
 				chromium: true,
 				firefox: true,
 				webkit: true,
 				safariOld: { pass: true, device: 'iPhone XR', version: 'Safari 18.7', confirmed: false },
-				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: false }
+				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
@@ -81,14 +93,15 @@
 				'so nothing to disagree about across engines or versions, and immune to the ' +
 				'ancestor-pin hazard below (unlike the two rows underneath). It is one half of the ' +
 				'recommended pattern above, not a replacement for font-style: pairing it with ' +
-				'font-style: oblique keeps the semantic layer without giving up determinism.',
+				'font-style: oblique keeps the semantic layer without giving up determinism. Confirmed ' +
+				'by hand on real Safari 27.0, not just reasoned from the mechanism.',
 			klass: 'm-usesite',
 			browsers: {
 				chromium: true,
 				firefox: true,
 				webkit: true,
 				safariOld: { pass: true, device: 'iPhone XR', version: 'Safari 18.7', confirmed: false },
-				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: false }
+				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
@@ -120,21 +133,44 @@
 			expect:
 				'Leans ~11deg in Chromium, current WebKit and Firefox — but confirmed UPRIGHT on real ' +
 				'Safari 18.7 (iPhone XR): it does not perform this automatic font-style -> slnt mapping ' +
-				'at all, even with no ancestor pin in the way. Not separately re-tested on Safari 27.0 ' +
-				'— probably fixed alongside the bare-oblique row above, since both reach the same ' +
-				'underlying axis-mapping capability just via a different matching path, but that is a ' +
-				'guess, not a measurement, so it is left unconfirmed here rather than assumed. Playwright’s ' +
-				'WebKit is a different, newer build and reproduces neither gap — this is a real engine ' +
-				'divergence you can only catch by hand. font-style: italic is fine as a semantic hint; ' +
-				'pair it with explicit slnt (or prefer bare oblique, one layer less indirect) for ' +
-				'determinism.',
+				'at all, even with no ancestor pin in the way. Confirmed fixed on Safari 27.0, matching ' +
+				'the bare-oblique row above — this time measured, not the earlier guess that it was ' +
+				'"probably fixed alongside it." Playwright’s WebKit is a different, newer build and ' +
+				'reproduces neither gap — this is a real engine divergence you can only catch by hand. ' +
+				'font-style: italic is fine as a semantic hint; pair it with explicit slnt (or prefer ' +
+				'bare oblique, one layer less indirect) for determinism.',
 			klass: 'm-oblique',
 			browsers: {
 				chromium: true,
 				firefox: true,
 				webkit: true,
 				safariOld: { pass: false, device: 'iPhone XR', version: 'Safari 18.7', confirmed: true },
-				safariNew: null
+				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
+			}
+		},
+		{
+			id: 'italic-vs-range',
+			title: "font-style: italic against the font's TRUE -11deg..11deg range — broken, differently",
+			css: 'font-style: italic  (face declares: font-style: oblique -11deg 11deg)',
+			expect:
+				"Completes the matrix for the ranged face. Per spec, italic's angle is not 14deg like " +
+				'bare oblique\'s — it is explicitly "unspecified" (CSS Fonts 4) — so this is a DIFFERENT ' +
+				'gap, not the same one restated: whatever angle an engine picks for italic, it is not ' +
+				"guaranteed to fall inside this face's declared -11..11 bounds either, and it doesn't " +
+				'here. Broken in the same two engines as the row below, but by a DIFFERENT amount: ' +
+				'Chromium leans ~0.44, the same double-stack shape as bare oblique (axis correctly set ' +
+				'to -11, plus a synthetic skew on top). WebKit leans ~0.25 this time, not ~0.44 — ' +
+				"that's tan(14deg), a PURE synthetic skew with NO axis contribution at all, a third, " +
+				'genuinely different failure mode. Measured, not assumed to match the row below just ' +
+				'because both are "the trap." Only Firefox is correct. Confirmed broken on real Safari ' +
+				'27.0 too.',
+			klass: 'm-italic-range',
+			browsers: {
+				chromium: false,
+				firefox: true,
+				webkit: false,
+				safariOld: null,
+				safariNew: { pass: false, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
@@ -156,14 +192,15 @@
 				'that stays correct with no extra use-site discipline required, where a ranged face ' +
 				'would require every consumer to know and state the exact angle. font-synthesis is ' +
 				"forced back to weight+style here — this site's own font-synthesis: weight would " +
-				'otherwise neutralise the trap by accident. Not re-tested on a real device.',
+				'otherwise neutralise the trap by accident. Confirmed broken on real Safari 27.0 too — ' +
+				'the trap is not an old-Safari-only problem.',
 			klass: 'm-oblique-range',
 			browsers: {
 				chromium: false,
 				firefox: true,
 				webkit: false,
 				safariOld: null,
-				safariNew: null
+				safariNew: { pass: false, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
@@ -177,18 +214,43 @@
 				'asks for a specific point inside them. Unlike the bare keyword, 11deg IS within this ' +
 				"face's declared range, so there is nothing for the engine to fall back to synthesis " +
 				'for — resolves via the axis alone, correctly, in Chromium, Firefox and Playwright ' +
-				'WebKit, whether or not font-synthesis allows style synthesis. fonts.css does not ship ' +
-				'this yet: it requires every consumer to discover and state the exact angle rather than ' +
-				'just writing font-style: oblique, and it has not been checked on real Safari. Kept as ' +
-				'a documented possibility for when Cairo (or a successor) is ready to declare its axis ' +
-				'range properly, not a recommendation to adopt today.',
+				'WebKit, whether or not font-synthesis allows style synthesis. Confirmed on real Safari ' +
+				'27.0 too. fonts.css does not ship this yet: it requires every consumer to discover and ' +
+				'state the exact angle rather than just writing font-style: oblique, and it has not been ' +
+				'checked on real OLD Safari. Kept as a documented possibility for when Cairo (or a ' +
+				'successor) is ready to declare its axis range properly, not a recommendation to adopt ' +
+				'today.',
 			klass: 'm-oblique-range-angle',
 			browsers: {
 				chromium: true,
 				firefox: true,
 				webkit: true,
 				safariOld: null,
-				safariNew: null
+				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
+			}
+		},
+		{
+			id: 'oblique-range-combo',
+			title: 'oblique 11deg + explicit slnt -11 against the TRUE range — the migration path',
+			css: "font-style: oblique 11deg; font-variation-settings: 'slnt' -11  (face declares: font-style: oblique -11deg 11deg)",
+			expect:
+				'The belt-and-suspenders version of the row above, for when fonts.css eventually ships ' +
+				'a ranged face: pair the exact angle with an explicit slnt value, same shape as the ' +
+				'CURRENT recommended row pairing bare oblique with explicit slnt. Whichever half a given ' +
+				"engine gets right, the other covers it — and because an element's own explicit " +
+				'font-variation-settings always wins over font-style-matching, the slnt half is provably ' +
+				'safe to delete later, once range-matching is trusted across every target engine and ' +
+				'version. Measured with no interaction or synthesis surprise: leans correctly in ' +
+				'Chromium, Firefox and Playwright WebKit, identically to the row above. Not a migration ' +
+				'to make today — fonts.css still ships the bare-oblique, range-free face. Confirmed on ' +
+				'real Safari 27.0 too — the belt-and-suspenders pairing holds up there as well.',
+			klass: 'm-oblique-range-combo',
+			browsers: {
+				chromium: true,
+				firefox: true,
+				webkit: true,
+				safariOld: null,
+				safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
@@ -204,23 +266,27 @@
 				'oblique face with no normal sibling; re-measured against a family carrying both, ' +
 				'the way fonts.css actually ships Cairo, and both engines pick the wrong face and ' +
 				'render upright — not a partial lean, no lean at all. Confirmed live on this page: ' +
-				'the matrix cell below reproduces it. Stick with the recommended row above.',
+				'the matrix cell below reproduces it. Stick with the recommended row above. Also ' +
+				'confirmed broken on real Safari 27.0.',
 			klass: 'm-oblique-angle',
 			browsers: {
 				chromium: false,
 				firefox: true,
 				webkit: false,
 				safariOld: null,
-				safariNew: null
+				safariNew: { pass: false, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 			}
 		},
 		{
 			id: 'fvs-descriptor',
-			title: 'font-variation-settings as an @font-face DESCRIPTOR',
+			title: 'HISTORICAL, DO NOT USE — font-variation-settings as an @font-face DESCRIPTOR',
 			css: "@font-face { font-variation-settings: 'slnt' -11 }",
 			expect:
-				'The old hand-written font.css relied on this. Measured DEAD in WebKit — upright, no ' +
-				'lean at all — so Cairo italic was silently broken in Safari all along. Not separately ' +
+				'Not a live recommendation — kept as a regression guard. The old hand-written font.css ' +
+				'relied on this. Measured DEAD in WebKit — upright, no lean at all — so Cairo italic was ' +
+				'silently broken in Safari all along, the whole time that file was live. Demoted out of ' +
+				"the Quick matrix above: it's not a viable alternative worth comparing side by side with " +
+				'the working techniques, just a documented reason not to reintroduce it. Not separately ' +
 				'device-confirmed in isolation from the original backslant bug report; not re-tested here.',
 			klass: 'm-descriptor',
 			browsers: {
@@ -270,13 +336,15 @@
 	// always wins regardless of what the face's own font-style descriptor is
 	// doing, so this is true independent of the descriptor being tested. Not a
 	// combination separately exercised by slant.browser.test.ts, hence its own
-	// entry rather than a find() reference.
+	// entry rather than a find() reference. safariNew confirmed by hand against
+	// the ranged face specifically (docs/manual.json), not just reasoned from
+	// the mechanism holding for the bare-oblique face.
 	const EXPLICIT_SLNT_ANYWHERE: Verdict = {
 		chromium: true,
 		firefox: true,
 		webkit: true,
 		safariOld: { pass: true, device: 'iPhone XR', version: 'Safari 18.7', confirmed: false },
-		safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: false }
+		safariNew: { pass: true, device: 'macOS desktop', version: 'Safari 27.0', confirmed: true }
 	};
 
 	// Rows = what the @font-face declares. Columns = what's set at the use
@@ -284,37 +352,50 @@
 	// exists, so there is exactly one source of truth per claim; `null` means
 	// genuinely untested/not meaningful for that combination, not "assumed
 	// fine" — left blank rather than guessed at.
+	// Numbered 0-5, literal CSS rather than prose, so each row states exactly
+	// what's being asked for at the use site — no paraphrasing to double-check
+	// against the css shown lower on the page.
 	const MATRIX_COLS = [
-		{ id: 'none', label: '(nothing set)' },
-		{ id: 'italic', label: 'font-style: italic' },
-		{ id: 'oblique', label: 'font-style: oblique' },
-		{ id: 'obliqueAngle', label: 'font-style: oblique 11deg' },
-		{ id: 'slnt', label: "font-variation-settings: 'slnt' -11" },
-		{ id: 'combo', label: "oblique + 'slnt' -11" }
+		{ id: 'none', num: 0, lines: ['(nothing set)'] },
+		{ id: 'italic', num: 1, lines: ['font-style: italic;'] },
+		{ id: 'oblique', num: 2, lines: ['font-style: oblique;'] },
+		{ id: 'obliqueAngle', num: 3, lines: ['font-style: oblique 11deg;'] },
+		{ id: 'slnt', num: 4, lines: ["font-variation-settings: 'slnt' -11;"] },
+		{
+			id: 'combo',
+			num: 5,
+			lines: ['font-style: oblique 11deg;', "font-variation-settings: 'slnt' -11;"]
+		}
 	] as const;
 
 	// The use-site CSS each column actually applies, for the overlap-diff
 	// glyph. 'none' is deliberately empty — that's the point of that column.
+	// 'combo' matches row 5's literal label (oblique 11deg + slnt, the
+	// migration-path pairing) — the oblique-bare-face row overrides the
+	// font-style half back to bare via its own cell's extraCss, since bare
+	// oblique + slnt is what's actually shipped and recommended THERE.
 	const MATRIX_COL_CSS: Record<(typeof MATRIX_COLS)[number]['id'], string> = {
 		none: '',
 		italic: 'font-style: italic;',
 		oblique: 'font-style: oblique;',
 		obliqueAngle: 'font-style: oblique 11deg;',
 		slnt: "font-variation-settings: 'slnt' -11;",
-		combo: "font-style: oblique; font-variation-settings: 'slnt' -11;"
+		combo: "font-style: oblique 11deg; font-variation-settings: 'slnt' -11;"
 	};
 
 	type MatrixCell = { verdict: Verdict; extraCss?: string } | null;
 
 	const MATRIX_ROWS: {
 		id: string;
-		label: string;
+		code: string;
+		note: string;
 		family: string;
 		cells: Record<(typeof MATRIX_COLS)[number]['id'], MatrixCell>;
 	}[] = [
 		{
 			id: 'oblique-bare-face',
-			label: '@font-face { font-style: oblique } — shipped by fonts.css',
+			code: '@font-face { font-style: oblique; }',
+			note: "The font's style only — shipped by fonts.css",
 			family: 'Cairo',
 			cells: {
 				none: { verdict: UPRIGHT_CONTROL },
@@ -322,43 +403,39 @@
 				oblique: { verdict: find('oblique-bare') },
 				obliqueAngle: { verdict: find('oblique-angle') },
 				slnt: { verdict: find('fvs-use-site') },
-				combo: { verdict: find('recommended') }
+				// Overrides column 5's base (oblique 11deg + slnt) back to bare
+				// oblique + slnt — what's actually shipped and recommended for
+				// THIS face, matching the 'recommended' SLANT_TESTS entry's css
+				// field exactly.
+				combo: { verdict: find('recommended'), extraCss: 'font-style: oblique;' }
 			}
 		},
 		{
 			id: 'oblique-range-face',
-			label: "@font-face { font-style: oblique -11deg 11deg } — the trap, the font's real bounds",
+			code: '@font-face { font-style: oblique -11deg 11deg; }',
+			note: "The font's real slnt bounds — the trap",
 			family: 'CairoObliqueRangeTest',
 			cells: {
 				none: { verdict: UPRIGHT_CONTROL },
-				italic: null,
 				// This site's own app.css sets font-synthesis: weight globally,
 				// which neutralises the trap by accident (docs/compat.md, "the
 				// oblique-range trap is neutralised by font-synthesis: weight").
-				// Without restating font-synthesis: weight style here too, this
-				// cell would render as a false pass, contradicting its own
-				// verdict badges below. Matches the css field on the
-				// 'oblique-explicit' SLANT_TESTS entry exactly.
+				// Without restating font-synthesis: weight style here too, both
+				// cells below would render as a false pass, contradicting their
+				// own verdict badges. Matches the css field on the
+				// 'italic-vs-range'/'oblique-explicit' SLANT_TESTS entries exactly.
+				italic: { verdict: find('italic-vs-range'), extraCss: 'font-synthesis: weight style;' },
 				oblique: { verdict: find('oblique-explicit'), extraCss: 'font-synthesis: weight style;' },
 				// Passes without needing the font-synthesis override the row
 				// above needs — matches 'oblique-range-angle' exactly, measured
 				// with and without style synthesis allowed (slant.browser.test.ts).
 				obliqueAngle: { verdict: find('oblique-range-angle') },
-				slnt: null,
-				combo: null
-			}
-		},
-		{
-			id: 'descriptor-face',
-			label: "@font-face { font-variation-settings: 'slnt' -11 } descriptor",
-			family: 'CairoDescriptorTest',
-			cells: {
-				none: { verdict: find('fvs-descriptor') },
-				italic: null,
-				oblique: null,
-				obliqueAngle: null,
+				// Mechanism-based, like EXPLICIT_SLNT_ANYWHERE below: setting the
+				// axis directly bypasses font-style-matching entirely, so it can't
+				// care which @font-face block is active. Same reasoning, not a
+				// separately-exercised browser test.
 				slnt: { verdict: EXPLICIT_SLNT_ANYWHERE },
-				combo: null
+				combo: { verdict: find('oblique-range-combo') }
 			}
 		}
 	];
@@ -441,9 +518,9 @@
 		>
 		(the recommended row below) — it is correct everywhere today, with no per-use-site angle to get right.
 		The theoretically "purer" end state — a face that declares its true <code>slnt</code> range, matched
-		with an exact angle at the use site — also measures correct in every automated engine, but fonts.css
-		does not ship it: it demands every consumer discover and state the exact angle, and it has not been
-		checked on real Safari.
+		with an exact angle at the use site — also measures correct in every automated engine, and is now
+		confirmed correct on real Safari 27.0 too. fonts.css still doesn't ship it: it demands every consumer
+		discover and state the exact angle, and it hasn't been checked on real OLD Safari yet.
 	</p>
 	<ul>
 		<li>
@@ -485,6 +562,22 @@
 			resolves correctly in every engine. fonts.css still ships the bare keyword against a
 			range-free face, because that needs no such per-use-site angle discipline. See both rows
 			below.
+		</li>
+		<li>
+			The "trap" is really about two specific keywords, not ranges in general — the
+			<a href="https://drafts.csswg.org/css-fonts-4/#font-style-prop">spec text</a> is explicit
+			about why: <code>italic</code> matches "against a font labeled as an italic face... the angle
+			and direction of slant is <b>unspecified</b>," and bare <code>oblique</code> (no angle) falls
+			back to a stated default of <b>14deg</b>. Neither of those angles is guaranteed to fall inside
+			any particular declared range. <code>oblique &lt;angle&gt;</code>, by contrast, is the spec's
+			own purpose-built mechanism for matching a specific point in a declared range — it is not a
+			workaround or a "future-proofing" trick, it is what the range syntax was designed for. So a
+			ranged <code>@font-face</code> paired with an explicit angle is spec-correct today, not merely
+			forward-looking; the failure mode is specifically what happens when <code>italic</code> or
+			bare
+			<code>oblique</code> (rows 1-2 in the matrix) hit a face that does not happen to cover their unspecified/default
+			angle. fonts.css still ships the range-free face regardless, because it can't force every consumer
+			to write the exact-angle form instead of the simpler keywords.
 		</li>
 		<li>
 			Change weight with the <code>font-weight</code> <b>property</b>
@@ -536,9 +629,9 @@
 
 {#snippet verdictBadges(v: Verdict)}
 	<ul class="verdicts">
-		{@render badge(chromiumLogo, 'Chromium', v.chromium, true)}
-		{@render badge(firefoxLogo, 'Firefox', v.firefox, true)}
-		{@render badge(webkitLogo, 'WebKit (Playwright)', v.webkit, true)}
+		{@render badge(chromiumLogo, `Chromium ${PLAYWRIGHT_VERSIONS.chromium}`, v.chromium, true)}
+		{@render badge(firefoxLogo, `Firefox ${PLAYWRIGHT_VERSIONS.firefox}`, v.firefox, true)}
+		{@render badge(webkitLogo, `WebKit ${PLAYWRIGHT_VERSIONS.webkit} (Playwright)`, v.webkit, true)}
 		{@render realSafari(v.safariOld, 'Safari (old)')}
 		{@render realSafari(v.safariNew, 'Safari (new)')}
 	</ul>
@@ -578,14 +671,21 @@
 			<tr>
 				<th></th>
 				{#each MATRIX_ROWS as face (face.id)}
-					<th>{face.label}</th>
+					<th><code>{face.code}</code><span class="col-note">{face.note}</span></th>
 				{/each}
 			</tr>
 		</thead>
 		<tbody>
 			{#each MATRIX_COLS as useSite (useSite.id)}
 				<tr>
-					<th scope="row">{useSite.label}</th>
+					<th scope="row">
+						<span class="row-num">{useSite.num}.</span>
+						<code>
+							{#each useSite.lines as line, i (i)}
+								{line}{#if i < useSite.lines.length - 1}<br />{/if}
+							{/each}
+						</code>
+					</th>
 					{#each MATRIX_ROWS as face (face.id)}
 						{@const cell = face.cells[useSite.id]}
 						{@const status = matrixStatus(cell?.verdict ?? null)}
@@ -621,6 +721,19 @@
 	</li>
 	<li><span class="b-badge unknown"></span> untested on a real device</li>
 	<li class="legend-note">Hover a badge for the exact device/version/confirmation status.</li>
+</ul>
+<ul class="legend legend-versions">
+	<li>
+		<img class="logo" src={chromiumLogo} alt="Chromium" /> Chromium {PLAYWRIGHT_VERSIONS.chromium}
+	</li>
+	<li>
+		<img class="logo" src={firefoxLogo} alt="Firefox" /> Firefox {PLAYWRIGHT_VERSIONS.firefox}
+	</li>
+	<li>
+		<img class="logo" src={webkitLogo} alt="WebKit" /> WebKit {PLAYWRIGHT_VERSIONS.webkit} (Playwright)
+	</li>
+	<li><img class="logo" src={safariLogo} alt="Safari (old)" /> Safari 18.7 (iPhone XR)</li>
+	<li><img class="logo" src={safariLogo} alt="Safari (new)" /> Safari 27.0 (macOS desktop)</li>
 </ul>
 
 <h2>The iOS Safari backslant</h2>
@@ -855,6 +968,34 @@
 		vertical-align: top;
 	}
 
+	table.matrix thead th code {
+		display: block;
+		font-size: 0.78rem;
+		background: none;
+		padding: 0;
+		white-space: normal;
+	}
+
+	table.matrix .col-note {
+		display: block;
+		margin-top: 0.25rem;
+		font-size: 0.75rem;
+		font-weight: normal;
+		font-style: italic;
+		color: var(--text-muted);
+	}
+
+	table.matrix .row-num {
+		font-weight: bold;
+		color: var(--text-muted);
+	}
+
+	table.matrix tbody th code {
+		font-size: 0.78rem;
+		background: none;
+		padding: 0;
+	}
+
 	table.matrix td {
 		min-width: 12.5rem;
 		border-left-width: 3px;
@@ -922,6 +1063,10 @@
 
 	.legend-note {
 		font-style: italic;
+	}
+
+	.legend-versions {
+		padding-top: 0;
 	}
 
 	.rows {
@@ -1120,7 +1265,7 @@
 
 	.m-oblique-range {
 		font-family: 'CairoObliqueRangeTest', var(--font-sans);
-		font-style: italic;
+		font-style: oblique;
 		font-variation-settings: normal;
 		/* html sets font-synthesis: weight globally, which happens to
 		   neutralise this exact trap (slant.browser.test.ts, "the
@@ -1149,6 +1294,19 @@
 		font-synthesis: weight style;
 	}
 
+	/* Same face, italic instead of bare oblique — a SEPARATE measured trap
+	   (slant.browser.test.ts, "italic against the ranged face fails too,
+	   but not the same way as bare oblique"): both fall back to the same
+	   out-of-bounds default angle, but WebKit's failure mode differs by
+	   amount (pure synthetic 14deg here, vs axis-plus-synthesis above) - so
+	   this needed its own class, not a reuse of .m-oblique-range. */
+	.m-italic-range {
+		font-family: 'CairoObliqueRangeTest', var(--font-sans);
+		font-style: italic;
+		font-variation-settings: normal;
+		font-synthesis: weight style;
+	}
+
 	/* The real end state: a specific angle, within the face's declared
 	   bounds, against the ranged face — resolves via the axis alone, no
 	   font-synthesis override needed (slant.browser.test.ts measured this
@@ -1158,6 +1316,15 @@
 		font-family: 'CairoObliqueRangeTest', var(--font-sans);
 		font-style: oblique 11deg;
 		font-variation-settings: normal;
+	}
+
+	/* The migration-path pairing: exact angle + explicit slnt together, so
+	   the slnt half can be deleted later once range-matching is trusted
+	   everywhere (slant.browser.test.ts confirms no interaction). */
+	.m-oblique-range-combo {
+		font-family: 'CairoObliqueRangeTest', var(--font-sans);
+		font-style: oblique 11deg;
+		font-variation-settings: 'slnt' -11;
 	}
 
 	.m-descriptor {
