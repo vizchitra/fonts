@@ -48,6 +48,24 @@
 		safariNew: RealSafari;
 	};
 
+	// Editorial verdict on the TECHNIQUE, distinct from the pass/fail Verdict
+	// data above — "is this a bug" (Verdict) vs "should you use this" (Category).
+	// A row can be all-true in Verdict and still be Legacy (safe but superseded)
+	// or Ingredient (correct but not a complete recipe on its own). Six buckets,
+	// not the four the matrix's own status-* colours use, because "should you
+	// use this" has cases the pass/fail spectrum can't express: a row can be a
+	// dead end nobody would choose (Diagnostic) or a historical pattern that
+	// still works but isn't what fonts.css ships (Legacy) — neither is "broken."
+	type Category = 'recommended' | 'incomplete' | 'avoid' | 'legacy' | 'ingredient' | 'diagnostic';
+	const CATEGORY: Record<Category, { label: string; icon: string }> = {
+		recommended: { label: 'Recommended', icon: '✓' },
+		incomplete: { label: 'Incomplete', icon: '⚠' },
+		avoid: { label: 'Avoid', icon: '✕' },
+		legacy: { label: 'Legacy', icon: '○' },
+		ingredient: { label: 'Ingredient', icon: '⚙' },
+		diagnostic: { label: 'Diagnostic', icon: 'ℹ' }
+	};
+
 	// Two real devices back the confirmed:true entries below:
 	//   - "iPhone XR" / "Safari 18.7" — old, the device the original backslant
 	//     bug was reported on.
@@ -61,9 +79,11 @@
 		expect: string;
 		klass: string;
 		browsers: Verdict;
+		category: Category;
 	}[] = [
 		{
 			id: 'oblique-range-combo',
+			category: 'recommended',
 			title:
 				"font-style: oblique 11deg + font-variation-settings: 'slnt' -11 — RECOMMENDED, what fonts.css ships",
 			css: "font-style: oblique 11deg; font-variation-settings: 'slnt' -11  (face declares: font-style: oblique -11deg 11deg)",
@@ -93,6 +113,7 @@
 		},
 		{
 			id: 'oblique-range-angle',
+			category: 'incomplete',
 			title:
 				'font-style: oblique 11deg ALONE against the TRUE range — correct, but not sufficient by itself',
 			css: 'font-style: oblique 11deg  (face declares: font-style: oblique -11deg 11deg)',
@@ -117,6 +138,7 @@
 		},
 		{
 			id: 'italic-vs-range',
+			category: 'avoid',
 			title: 'font-style: italic against the TRUE -11deg..11deg range — broken, differently',
 			css: 'font-style: italic; font-synthesis: weight style  (face declares: font-style: oblique -11deg 11deg)',
 			expect:
@@ -143,6 +165,7 @@
 		},
 		{
 			id: 'oblique-explicit',
+			category: 'avoid',
 			title: 'font-style: oblique (BARE) against the TRUE range — still the trap, avoid',
 			css: 'font-style: oblique; font-synthesis: weight style  (face declares: font-style: oblique -11deg 11deg)',
 			expect:
@@ -168,6 +191,7 @@
 		},
 		{
 			id: 'oblique-angle',
+			category: 'avoid',
 			title:
 				'font-style: oblique 11deg against a family with BOTH normal and BARE oblique — historical hazard',
 			css: 'font-style: oblique 11deg  (family declares font-style: normal AND a BARE font-style: oblique, no range — no longer what fonts.css ships)',
@@ -193,6 +217,7 @@
 		},
 		{
 			id: 'recommended',
+			category: 'legacy',
 			title: "font-style: oblique + font-variation-settings: 'slnt' -11 — historical, still valid",
 			css: "font-style: oblique; font-variation-settings: 'slnt' -11  (face declares: font-style: oblique, no range)",
 			expect:
@@ -215,6 +240,7 @@
 		},
 		{
 			id: 'fvs-use-site',
+			category: 'ingredient',
 			title: "font-variation-settings: 'slnt' -11 alone — the deterministic ingredient",
 			css: "font-variation-settings: 'slnt' -11",
 			expect:
@@ -235,6 +261,7 @@
 		},
 		{
 			id: 'oblique-bare',
+			category: 'legacy',
 			title: 'font-style: oblique alone (bare, no italic), against a range-free face — historical',
 			css: 'font-style: oblique  (face declares: font-style: oblique, no range)',
 			expect:
@@ -258,6 +285,7 @@
 		},
 		{
 			id: 'oblique-range',
+			category: 'legacy',
 			title: 'font-style: italic against a range-free bare `oblique` face — historical',
 			css: 'font-style: italic  (face declares: font-style: oblique, no range)',
 			expect:
@@ -280,6 +308,7 @@
 		},
 		{
 			id: 'fvs-descriptor',
+			category: 'diagnostic',
 			title: 'HISTORICAL, DO NOT USE — font-variation-settings as an @font-face DESCRIPTOR',
 			css: "@font-face { font-variation-settings: 'slnt' -11 }",
 			expect:
@@ -300,6 +329,7 @@
 		},
 		{
 			id: 'synthesis',
+			category: 'diagnostic',
 			title: 'Faux-oblique synthesis on top of a real axis',
 			css: "font-style: italic  +  font-variation-settings: 'slnt' -11",
 			expect:
@@ -785,8 +815,13 @@
 
 <div class="rows">
 	{#each SLANT_TESTS as t (t.id)}
-		<section>
-			<h3>{t.title}</h3>
+		<section class="cat-{t.category}">
+			<h3>
+				<span class="cat-badge cat-{t.category}"
+					>{CATEGORY[t.category].icon} {CATEGORY[t.category].label}</span
+				>
+				{t.title}
+			</h3>
 			<code class="css">{t.css}</code>
 			<div class="specimen">
 				<div class="half">
@@ -1081,9 +1116,73 @@
 		padding: 0.9rem 1rem 1rem;
 	}
 
+	/* Category colours reuse the matrix's own pass/version-dependent/broken
+	   palette where the meaning lines up (recommended=pass green,
+	   incomplete=version-dependent amber, avoid=broken red), so the same
+	   colour means the same thing whether you're looking at a matrix cell or
+	   a technique row. Legacy/ingredient/diagnostic have no matrix
+	   equivalent — they're about whether to USE a technique, not whether it
+	   passes — so they get their own hues, chosen to stay visually distinct
+	   from the pass/fail spectrum and from each other. */
+	section.cat-recommended {
+		border-left: 3px solid #4ade80;
+	}
+	section.cat-incomplete {
+		border-left: 3px solid #fbbf24;
+	}
+	section.cat-avoid {
+		border-left: 3px solid #f87171;
+	}
+	section.cat-legacy {
+		border-left: 3px solid #94a3b8;
+	}
+	section.cat-ingredient {
+		border-left: 3px solid #60a5fa;
+	}
+	section.cat-diagnostic {
+		border-left: 3px solid #c084fc;
+	}
+
 	h3 {
 		margin: 0 0 0.3rem;
 		font-size: 0.95rem;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.cat-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.68rem;
+		font-weight: bold;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		padding: 0.15rem 0.5rem;
+		border-radius: 1rem;
+		white-space: nowrap;
+		color: var(--bg);
+	}
+
+	.cat-badge.cat-recommended {
+		background: #4ade80;
+	}
+	.cat-badge.cat-incomplete {
+		background: #fbbf24;
+	}
+	.cat-badge.cat-avoid {
+		background: #f87171;
+	}
+	.cat-badge.cat-legacy {
+		background: #94a3b8;
+	}
+	.cat-badge.cat-ingredient {
+		background: #60a5fa;
+	}
+	.cat-badge.cat-diagnostic {
+		background: #c084fc;
 	}
 
 	.css {
