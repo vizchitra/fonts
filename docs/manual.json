@@ -1,0 +1,55 @@
+{
+	"_comment": "Fill `old` and `new` with true (pass), false (fail), or leave null (untested). `id` matches a SLANT_TESTS entry in src/routes/compat/+page.svelte exactly, so results here can be fed back into that file's safariOld/safariNew verdicts programmatically.",
+	"devices": {
+		"old": {
+			"device": "iPhone XR",
+			"version": "Safari 18.7"
+		},
+		"new": {
+			"device": "macOS desktop",
+			"version": "Safari 27.0"
+		}
+	},
+	"results": [
+		{
+			"id": "oblique-angle",
+			"technique": "font-style: oblique 11deg against the shipped family (normal + oblique faces)",
+			"expected": "fail",
+			"old": null,
+			"new": "fail",
+			"notes": "wired into +page.svelte"
+		},
+		{
+			"id": "italic-vs-range",
+			"technique": "font-style: italic against the true-bounds ranged face -11deg 11deg — broken, differently",
+			"expected": "fail",
+			"old": null,
+			"new": null,
+			"notes": ""
+		},
+		{
+			"id": "oblique-explicit",
+			"technique": "font-style: oblique (bare) against the true-bounds ranged face -11deg 11deg — the trap",
+			"expected": "fail",
+			"old": null,
+			"new": "fail",
+			"notes": "wired into +page.svelte"
+		},
+		{
+			"id": "oblique-range-angle",
+			"technique": "font-style: oblique 11deg against the true-bounds ranged face — the end state",
+			"expected": "pass",
+			"old": null,
+			"new": null,
+			"notes": ""
+		},
+		{
+			"id": "oblique-range-combo",
+			"technique": "font-style: oblique 11deg + font-variation-settings: 'slnt' -11 against the ranged face — migration path",
+			"expected": "pass",
+			"old": null,
+			"new": "pass",
+			"notes": "wired into +page.svelte"
+		}
+	]
+}

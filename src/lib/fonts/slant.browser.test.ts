@@ -353,6 +353,27 @@ describe('Cairo slant techniques', () => {
 		}
 	});
 
+	test('italic against the ranged face fails too, but not the same way as bare oblique', async () => {
+		// Completes the matrix: the last untested cell for the ranged face.
+		// italic falls back to the same out-of-bounds default angle as bare
+		// oblique, so it's broken in the same two engines - but NOT by the
+		// same amount. Chromium: ~0.44, the same double-stack as bare oblique
+		// (axis correctly set to -11, PLUS a synthetic skew on top). WebKit:
+		// ~0.249 this time, not ~0.44 - that's tan(14deg), a PURE synthetic
+		// skew at CSS's default angle with NO axis contribution at all, a
+		// third, genuinely different failure mode from bare oblique's
+		// axis-plus-synthesis stack. Measured, not assumed to match the
+		// sibling row just because both are "the trap."
+		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: italic;");
+		if (ENGINE === 'firefox') {
+			expect(shear).toBeCloseTo(SLANTED, 1);
+		} else if (ENGINE === 'chromium') {
+			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
+		} else {
+			expect(shear).toBeCloseTo(Math.tan((14 * Math.PI) / 180), 1);
+		}
+	});
+
 	test('oblique 11deg PLUS explicit slnt together, against the ranged face: no interaction', async () => {
 		// The belt-and-suspenders migration pattern: once fonts.css eventually
 		// declares its true slnt range, pair the exact angle with an explicit
