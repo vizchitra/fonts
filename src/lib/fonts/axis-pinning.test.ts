@@ -24,8 +24,11 @@ import { describe, expect, test } from 'vite-plus/test';
 const ROOT = new URL('../../..', import.meta.url).pathname;
 
 // This route deliberately renders the broken case side by side with the fixed
-// one, so that the bug can be re-checked on a real device.
-const DEMONSTRATES_THE_BUG = 'src/routes/compat/';
+// one, so that the bug can be re-checked on a real device. slant.browser.test.ts
+// deliberately states 'wght' alone (no 'slnt') in one specific, unpinned case to
+// measure that it does NOT block the automatic mapping there — a genuine test of
+// the very thing this guard polices, not an accidental omission.
+const DEMONSTRATES_THE_BUG = ['src/routes/compat/', 'src/lib/fonts/slant.browser.test.ts'];
 
 function sourceFiles(dir: string, acc: string[] = []): string[] {
 	for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
@@ -57,7 +60,7 @@ describe('slnt is never left unpinned', () => {
 		const offenders: string[] = [];
 
 		for (const file of sourceFiles('src')) {
-			if (file.includes(DEMONSTRATES_THE_BUG)) continue;
+			if (DEMONSTRATES_THE_BUG.some((skip) => file.includes(skip))) continue;
 			const text = readFileSync(join(ROOT, file), 'utf8');
 			for (const { line, value } of declarations(text)) {
 				const flat = value.replace(/\s+/g, ' ').trim();
