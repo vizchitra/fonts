@@ -355,15 +355,17 @@ describe('Cairo slant techniques', () => {
 
 	test('italic against the ranged face fails too, but not the same way as bare oblique', async () => {
 		// Completes the matrix: the last untested cell for the ranged face.
-		// italic falls back to the same out-of-bounds default angle as bare
-		// oblique, so it's broken in the same two engines - but NOT by the
-		// same amount. Chromium: ~0.44, the same double-stack as bare oblique
-		// (axis correctly set to -11, PLUS a synthetic skew on top). WebKit:
-		// ~0.249 this time, not ~0.44 - that's tan(14deg), a PURE synthetic
-		// skew at CSS's default angle with NO axis contribution at all, a
-		// third, genuinely different failure mode from bare oblique's
-		// axis-plus-synthesis stack. Measured, not assumed to match the
-		// sibling row just because both are "the trap."
+		// Per spec (CSS Fonts 4), italic's angle is NOT 14deg like bare
+		// oblique's - it's explicitly "unspecified." So this is a DIFFERENT
+		// gap, not the same one restated: whatever angle an engine picks for
+		// italic isn't guaranteed to fall inside this face's declared bounds
+		// either, and it doesn't. Broken in the same two engines as bare
+		// oblique, but by a DIFFERENT amount: Chromium ~0.44, the same
+		// double-stack shape (axis correctly set to -11, PLUS a synthetic
+		// skew on top). WebKit ~0.249 this time, not ~0.44 - that's
+		// tan(14deg), a PURE synthetic skew with NO axis contribution at
+		// all, a third, genuinely different failure mode. Measured, not
+		// assumed to match the sibling row just because both are "the trap."
 		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: italic;");
 		if (ENGINE === 'firefox') {
 			expect(shear).toBeCloseTo(SLANTED, 1);

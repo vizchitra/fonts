@@ -5,6 +5,17 @@
 	import safariLogo from '#lib/assets/browsers/safari.svg';
 	import webkitLogo from '#lib/assets/browsers/webkit.svg';
 
+	// The exact bundled browser versions behind chromium/firefox/webkit's
+	// automated `true`/`false` verdicts — this repo's pinned Playwright
+	// (package.json, playwright@1.63.0), checked directly via
+	// `browser.version()` rather than assumed from the Playwright release
+	// number. Kept as one place to update if that pin ever changes.
+	const PLAYWRIGHT_VERSIONS = {
+		chromium: '153.0.8010.12',
+		firefox: '155.0',
+		webkit: '26.6'
+	};
+
 	// Techniques for slanting Cairo, which has no italic masters. Judged by eye:
 	// slnt barely changes advance widths (Cairo's 'I' moves 248 -> 249 units per
 	// 1000), so no width measurement can detect slant. The upright control sits
@@ -142,14 +153,16 @@
 			title: "font-style: italic against the font's TRUE -11deg..11deg range — broken, differently",
 			css: 'font-style: italic  (face declares: font-style: oblique -11deg 11deg)',
 			expect:
-				'Completes the matrix for the ranged face: italic falls back to the same out-of-bounds ' +
-				"default angle as bare oblique (the row below), so it's broken in the same two engines — " +
-				'but not by the same AMOUNT. Chromium leans ~0.44, the same double-stack as bare oblique ' +
-				'(axis correctly set to -11, plus a synthetic skew on top). WebKit leans ~0.25 this time, ' +
-				"not ~0.44 — that's tan(14deg), a PURE synthetic skew at CSS's default angle with NO axis " +
-				"contribution at all, a third, genuinely different failure mode from bare oblique's " +
-				'axis-plus-synthesis stack. Measured, not assumed to match the row below just because ' +
-				'both are "the trap." Only Firefox is correct. Not re-tested on a real device.',
+				"Completes the matrix for the ranged face. Per spec, italic's angle is not 14deg like " +
+				'bare oblique\'s — it is explicitly "unspecified" (CSS Fonts 4) — so this is a DIFFERENT ' +
+				'gap, not the same one restated: whatever angle an engine picks for italic, it is not ' +
+				"guaranteed to fall inside this face's declared -11..11 bounds either, and it doesn't " +
+				'here. Broken in the same two engines as the row below, but by a DIFFERENT amount: ' +
+				'Chromium leans ~0.44, the same double-stack shape as bare oblique (axis correctly set ' +
+				'to -11, plus a synthetic skew on top). WebKit leans ~0.25 this time, not ~0.44 — ' +
+				"that's tan(14deg), a PURE synthetic skew with NO axis contribution at all, a third, " +
+				'genuinely different failure mode. Measured, not assumed to match the row below just ' +
+				'because both are "the trap." Only Firefox is correct. Not re-tested on a real device.',
 			klass: 'm-italic-range',
 			browsers: {
 				chromium: false,
@@ -547,6 +560,22 @@
 			below.
 		</li>
 		<li>
+			The "trap" is really about two specific keywords, not ranges in general — the
+			<a href="https://drafts.csswg.org/css-fonts-4/#font-style-prop">spec text</a> is explicit
+			about why: <code>italic</code> matches "against a font labeled as an italic face... the angle
+			and direction of slant is <b>unspecified</b>," and bare <code>oblique</code> (no angle) falls
+			back to a stated default of <b>14deg</b>. Neither of those angles is guaranteed to fall inside
+			any particular declared range. <code>oblique &lt;angle&gt;</code>, by contrast, is the spec's
+			own purpose-built mechanism for matching a specific point in a declared range — it is not a
+			workaround or a "future-proofing" trick, it is what the range syntax was designed for. So a
+			ranged <code>@font-face</code> paired with an explicit angle is spec-correct today, not merely
+			forward-looking; the failure mode is specifically what happens when <code>italic</code> or
+			bare
+			<code>oblique</code> (rows 1-2 in the matrix) hit a face that does not happen to cover their unspecified/default
+			angle. fonts.css still ships the range-free face regardless, because it can't force every consumer
+			to write the exact-angle form instead of the simpler keywords.
+		</li>
+		<li>
 			Change weight with the <code>font-weight</code> <b>property</b>
 			(<code>font-weight: 700</code>), not by stating <code>'wght'</code> through
 			<code>font-variation-settings</code>. Measured: a lone <code>'wght'</code> value alone doesn't
@@ -596,9 +625,9 @@
 
 {#snippet verdictBadges(v: Verdict)}
 	<ul class="verdicts">
-		{@render badge(chromiumLogo, 'Chromium', v.chromium, true)}
-		{@render badge(firefoxLogo, 'Firefox', v.firefox, true)}
-		{@render badge(webkitLogo, 'WebKit (Playwright)', v.webkit, true)}
+		{@render badge(chromiumLogo, `Chromium ${PLAYWRIGHT_VERSIONS.chromium}`, v.chromium, true)}
+		{@render badge(firefoxLogo, `Firefox ${PLAYWRIGHT_VERSIONS.firefox}`, v.firefox, true)}
+		{@render badge(webkitLogo, `WebKit ${PLAYWRIGHT_VERSIONS.webkit} (Playwright)`, v.webkit, true)}
 		{@render realSafari(v.safariOld, 'Safari (old)')}
 		{@render realSafari(v.safariNew, 'Safari (new)')}
 	</ul>
@@ -688,6 +717,19 @@
 	</li>
 	<li><span class="b-badge unknown"></span> untested on a real device</li>
 	<li class="legend-note">Hover a badge for the exact device/version/confirmation status.</li>
+</ul>
+<ul class="legend legend-versions">
+	<li>
+		<img class="logo" src={chromiumLogo} alt="Chromium" /> Chromium {PLAYWRIGHT_VERSIONS.chromium}
+	</li>
+	<li>
+		<img class="logo" src={firefoxLogo} alt="Firefox" /> Firefox {PLAYWRIGHT_VERSIONS.firefox}
+	</li>
+	<li>
+		<img class="logo" src={webkitLogo} alt="WebKit" /> WebKit {PLAYWRIGHT_VERSIONS.webkit} (Playwright)
+	</li>
+	<li><img class="logo" src={safariLogo} alt="Safari (old)" /> Safari 18.7 (iPhone XR)</li>
+	<li><img class="logo" src={safariLogo} alt="Safari (new)" /> Safari 27.0 (macOS desktop)</li>
 </ul>
 
 <h2>The iOS Safari backslant</h2>
@@ -1017,6 +1059,10 @@
 
 	.legend-note {
 		font-style: italic;
+	}
+
+	.legend-versions {
+		padding-top: 0;
 	}
 
 	.rows {
