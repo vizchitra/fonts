@@ -1,12 +1,25 @@
 {
 	"_comment": "Fill `old` and `new` with true (pass), false (fail), or leave null (untested). Every cell in the /compat Quick matrix (5 meaningful use-site rows x 2 @font-face columns = 10 cells) gets both a `old` (Safari 18.7) and `new` (current Safari) slot, so this is a 20-slot checklist. `id` matches a SLANT_TESTS entry in src/routes/compat/+page.svelte where one exists; `fvs-anywhere-B` is synthetic (a shared, mechanism-based verdict with no dedicated SLANT_TESTS entry of its own). Some cells already carry data from the page (copied here as a starting point) but are only REASONED, not device-confirmed - re-check those too rather than trusting the reasoning blindly.",
 	"devices": {
-		"old": { "device": "iPhone XR", "version": "Safari 18.7" },
-		"new": { "device": "macOS desktop", "version": "Safari 27.0" }
+		"old": {
+			"device": "iPhone XR",
+			"version": "Safari 18.7"
+		},
+		"new": {
+			"device": "macOS desktop",
+			"version": "Safari 27.0"
+		}
 	},
-	"playwright_versions": { "chromium": "153.0.8010.12", "firefox": "155.0", "webkit": "26.6" },
+	"playwright_versions": {
+		"chromium": "153.0.8010.12",
+		"firefox": "155.0",
+		"webkit": "26.6"
+	},
 	"faces": {
-		"A": { "code": "@font-face { font-style: oblique; }", "note": "The font's style only" },
+		"A": {
+			"code": "@font-face { font-style: oblique; }",
+			"note": "The font's style only"
+		},
 		"B": {
 			"code": "@font-face { font-style: oblique -11deg 11deg; }",
 			"note": "The font's real slnt bounds"
@@ -18,27 +31,39 @@
 			"face": "A",
 			"id": "oblique-range",
 			"useSiteCss": "font-style: italic;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": false,
-			"new": null,
-			"notes": "old already device-confirmed on the page; new not yet checked"
+			"new": true,
+			"notes": "wired into +page.svelte"
 		},
 		{
 			"row": 1,
 			"face": "B",
 			"id": "italic-vs-range",
 			"useSiteCss": "font-style: italic; font-synthesis: weight style;",
-			"automated": { "chromium": false, "firefox": true, "webkit": false },
+			"automated": {
+				"chromium": false,
+				"firefox": true,
+				"webkit": false
+			},
 			"old": null,
-			"new": null,
-			"notes": ""
+			"new": false,
+			"notes": "wired into +page.svelte"
 		},
 		{
 			"row": 2,
 			"face": "A",
 			"id": "oblique-bare",
 			"useSiteCss": "font-style: oblique;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": false,
 			"new": true,
 			"notes": "both already device-confirmed on the page"
@@ -48,7 +73,11 @@
 			"face": "B",
 			"id": "oblique-explicit",
 			"useSiteCss": "font-style: oblique; font-synthesis: weight style;",
-			"automated": { "chromium": false, "firefox": true, "webkit": false },
+			"automated": {
+				"chromium": false,
+				"firefox": true,
+				"webkit": false
+			},
 			"old": null,
 			"new": false,
 			"notes": "new already device-confirmed on the page"
@@ -58,7 +87,11 @@
 			"face": "A",
 			"id": "oblique-angle",
 			"useSiteCss": "font-style: oblique 11deg;",
-			"automated": { "chromium": false, "firefox": true, "webkit": false },
+			"automated": {
+				"chromium": false,
+				"firefox": true,
+				"webkit": false
+			},
 			"old": null,
 			"new": false,
 			"notes": "new already device-confirmed on the page; tested against the shipped family (normal + oblique faces together)"
@@ -68,47 +101,67 @@
 			"face": "B",
 			"id": "oblique-range-angle",
 			"useSiteCss": "font-style: oblique 11deg;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": null,
-			"new": null,
-			"notes": ""
+			"new": true,
+			"notes": "wired into +page.svelte"
 		},
 		{
 			"row": 4,
 			"face": "A",
 			"id": "fvs-use-site",
 			"useSiteCss": "font-variation-settings: 'slnt' -11;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": null,
-			"new": null,
-			"notes": "page currently shows this REASONED true/true, not measured - worth actually confirming"
+			"new": true,
+			"notes": "wired into +page.svelte - upgraded from reasoned to confirmed"
 		},
 		{
 			"row": 4,
 			"face": "B",
 			"id": "fvs-anywhere-B",
 			"useSiteCss": "font-variation-settings: 'slnt' -11;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": null,
-			"new": null,
-			"notes": "mechanism-based (EXPLICIT_SLNT_ANYWHERE), no dedicated SLANT_TESTS id - page shows this REASONED, not measured"
+			"new": true,
+			"notes": "wired into +page.svelte (EXPLICIT_SLNT_ANYWHERE) - upgraded from reasoned to confirmed"
 		},
 		{
 			"row": 5,
 			"face": "A",
 			"id": "recommended",
 			"useSiteCss": "font-style: oblique; font-variation-settings: 'slnt' -11;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": null,
-			"new": null,
-			"notes": "page currently shows this REASONED true/true, not measured - worth actually confirming"
+			"new": true,
+			"notes": "wired into +page.svelte - upgraded from reasoned to confirmed"
 		},
 		{
 			"row": 5,
 			"face": "B",
 			"id": "oblique-range-combo",
 			"useSiteCss": "font-style: oblique 11deg; font-variation-settings: 'slnt' -11;",
-			"automated": { "chromium": true, "firefox": true, "webkit": true },
+			"automated": {
+				"chromium": true,
+				"firefox": true,
+				"webkit": true
+			},
 			"old": null,
 			"new": true,
 			"notes": "new already device-confirmed on the page"
