@@ -1,9 +1,9 @@
-/* Isolated families for the failing techniques on /compat. Each keeps its own
-   family name so a failure cannot affect the real 'Cairo' faces, and lives in a
-   plain .css file because @font-face inside a Svelte <style> block is scoped.
+/* Isolated families for /compat. Each keeps its own family name so a failure
+   cannot affect the real 'Cairo' faces, and lives in a plain .css file
+   because @font-face inside a Svelte <style> block is scoped.
 
-   Both are known-broken and kept as live demonstrations, with the numbers pinned
-   by src/lib/fonts/slant.browser.test.ts and recorded in docs/compat.md. */
+   Known-broken, kept as live demonstrations, with the numbers pinned by
+   src/lib/fonts/slant.browser.test.ts and recorded in docs/compat.md. */
 
 /* What the old hand-written font.css used for Cairo italic. Measures 0.000 shear
    in WebKit — completely inert — so Safari never rendered the italic at all. */
@@ -18,15 +18,26 @@
 	unicode-range: U+0000-00FF;
 }
 
-/* The angle-range trap: looks more precise than the bare `oblique` keyword and
-   is wrong in two of three engines. Chromium stacks a 14deg synthetic skew on
-   top of the real axis (0.444 vs the correct 0.194); WebKit discards the axis
-   and synthesises instead (0.249). Only Firefox maps it correctly. */
+/* What fonts.css used to ship, before the migration to a declared slnt range
+   (font-src/css.py, CAIRO_ITALIC): a bare `oblique` keyword, no angle, paired
+   with the normal-style face fonts.css always ships alongside it - the real
+   'Cairo' family no longer looks like this, so it's kept here in isolation
+   as the historical comparison point. Still a valid, safe pattern if you
+   ever hand-roll a face this way yourself: bare oblique + explicit slnt
+   works regardless of what the face declares. */
 @font-face {
-	font-family: 'CairoObliqueRangeTest';
+	font-family: 'CairoBareTest';
 	src: url('/fonts/v1/Cairo-Variable-latin.woff2') format('woff2');
 	font-weight: 200 1000;
-	font-style: oblique 0deg 11deg;
+	font-style: normal;
+	font-display: block;
+	unicode-range: U+0000-00FF;
+}
+@font-face {
+	font-family: 'CairoBareTest';
+	src: url('/fonts/v1/Cairo-Variable-latin.woff2') format('woff2');
+	font-weight: 200 1000;
+	font-style: oblique;
 	font-display: block;
 	unicode-range: U+0000-00FF;
 }
