@@ -353,6 +353,25 @@ describe('Cairo slant techniques', () => {
 		}
 	});
 
+	test('oblique 11deg PLUS explicit slnt together, against the ranged face: no interaction', async () => {
+		// The belt-and-suspenders migration pattern: once fonts.css eventually
+		// declares its true slnt range, pair the exact angle with an explicit
+		// slnt value the same way the CURRENT recommended row pairs bare
+		// oblique with explicit slnt - so whichever half a given engine gets
+		// right, the other covers it, and the explicit value is provably safe
+		// to delete later once range-matching is trusted everywhere. Measured
+		// rather than assumed: the two angles agree here (11deg CSS == 'slnt'
+		// -11), unlike the trap's out-of-bounds mismatch, so there's no
+		// reason to expect the synthesis-preference bug to reappear - but
+		// that reasoning alone has been wrong before this session, so it's
+		// checked directly.
+		const shear = await shearOf(
+			"font-family: 'CairoObliqueRange'; font-style: oblique 11deg; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+	});
+
 	test('asking for italic on a normal-declared face double-slants in every engine', async () => {
 		// font-style: italic on a family with no italic face makes the engine
 		// synthesise a skew, which then stacks on top of the real axis: ~0.44

@@ -192,6 +192,29 @@
 			}
 		},
 		{
+			id: 'oblique-range-combo',
+			title: 'oblique 11deg + explicit slnt -11 against the TRUE range — the migration path',
+			css: "font-style: oblique 11deg; font-variation-settings: 'slnt' -11  (face declares: font-style: oblique -11deg 11deg)",
+			expect:
+				'The belt-and-suspenders version of the row above, for when fonts.css eventually ships ' +
+				'a ranged face: pair the exact angle with an explicit slnt value, same shape as the ' +
+				'CURRENT recommended row pairing bare oblique with explicit slnt. Whichever half a given ' +
+				"engine gets right, the other covers it — and because an element's own explicit " +
+				'font-variation-settings always wins over font-style-matching, the slnt half is provably ' +
+				'safe to delete later, once range-matching is trusted across every target engine and ' +
+				'version. Measured with no interaction or synthesis surprise: leans correctly in ' +
+				'Chromium, Firefox and Playwright WebKit, identically to the row above. Not a migration ' +
+				'to make today — fonts.css still ships the bare-oblique, range-free face.',
+			klass: 'm-oblique-range-combo',
+			browsers: {
+				chromium: true,
+				firefox: true,
+				webkit: true,
+				safariOld: null,
+				safariNew: null
+			}
+		},
+		{
 			id: 'oblique-angle',
 			title: 'font-style: oblique 11deg against the shipped family — do not use',
 			css: 'font-style: oblique 11deg  (family declares BOTH font-style: normal and font-style: oblique faces, like fonts.css)',
@@ -216,11 +239,14 @@
 		},
 		{
 			id: 'fvs-descriptor',
-			title: 'font-variation-settings as an @font-face DESCRIPTOR',
+			title: 'HISTORICAL, DO NOT USE — font-variation-settings as an @font-face DESCRIPTOR',
 			css: "@font-face { font-variation-settings: 'slnt' -11 }",
 			expect:
-				'The old hand-written font.css relied on this. Measured DEAD in WebKit — upright, no ' +
-				'lean at all — so Cairo italic was silently broken in Safari all along. Not separately ' +
+				'Not a live recommendation — kept as a regression guard. The old hand-written font.css ' +
+				'relied on this. Measured DEAD in WebKit — upright, no lean at all — so Cairo italic was ' +
+				'silently broken in Safari all along, the whole time that file was live. Demoted out of ' +
+				"the Quick matrix above: it's not a viable alternative worth comparing side by side with " +
+				'the working techniques, just a documented reason not to reintroduce it. Not separately ' +
 				'device-confirmed in isolation from the original backslant bug report; not re-tested here.',
 			klass: 'm-descriptor',
 			browsers: {
@@ -344,21 +370,12 @@
 				// above needs — matches 'oblique-range-angle' exactly, measured
 				// with and without style synthesis allowed (slant.browser.test.ts).
 				obliqueAngle: { verdict: find('oblique-range-angle') },
-				slnt: null,
-				combo: null
-			}
-		},
-		{
-			id: 'descriptor-face',
-			label: "@font-face { font-variation-settings: 'slnt' -11 } descriptor",
-			family: 'CairoDescriptorTest',
-			cells: {
-				none: { verdict: find('fvs-descriptor') },
-				italic: null,
-				oblique: null,
-				obliqueAngle: null,
+				// Mechanism-based, like EXPLICIT_SLNT_ANYWHERE below: setting the
+				// axis directly bypasses font-style-matching entirely, so it can't
+				// care which @font-face block is active. Same reasoning, not a
+				// separately-exercised browser test.
 				slnt: { verdict: EXPLICIT_SLNT_ANYWHERE },
-				combo: null
+				combo: { verdict: find('oblique-range-combo') }
 			}
 		}
 	];
@@ -1158,6 +1175,15 @@
 		font-family: 'CairoObliqueRangeTest', var(--font-sans);
 		font-style: oblique 11deg;
 		font-variation-settings: normal;
+	}
+
+	/* The migration-path pairing: exact angle + explicit slnt together, so
+	   the slnt half can be deleted later once range-matching is trusted
+	   everywhere (slant.browser.test.ts confirms no interaction). */
+	.m-oblique-range-combo {
+		font-family: 'CairoObliqueRangeTest', var(--font-sans);
+		font-style: oblique 11deg;
+		font-variation-settings: 'slnt' -11;
 	}
 
 	.m-descriptor {
