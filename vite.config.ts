@@ -2,6 +2,7 @@ import { defineConfig } from 'vite-plus';
 import { playwright } from 'vite-plus/test/browser-playwright';
 import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
+import CompatMatrixReporter from './scripts/compat-matrix-reporter.mjs';
 
 const generated = [
 	'.svelte-kit/**',
@@ -11,7 +12,11 @@ const generated = [
 	'fonts.lock.json',
 	'src/lib/styles/fonts.css',
 	'static/fonts/**',
-	'font-src/upstream/**'
+	'font-src/upstream/**',
+	// Written by scripts/compat-matrix-reporter.mjs and
+	// scripts/browser-versions.mjs on every `pnpm test` — see /compat.
+	'src/lib/fonts/compat-matrix.generated.json',
+	'src/lib/fonts/browser-versions.generated.json'
 ];
 
 // The SvelteKit plugin installs a dev-server hook that is incompatible with the
@@ -69,6 +74,10 @@ export default defineConfig({
 	// Vitest — `vp test`.
 	test: {
 		expect: { requireAssertions: true },
+		// Collects src/lib/fonts/slant.browser.test.ts's tagMatrix() calls into
+		// src/lib/fonts/compat-matrix.generated.json — see the reporter's own
+		// header comment and /compat.
+		reporters: ['default', new CompatMatrixReporter()],
 		projects: [
 			{
 				test: {
