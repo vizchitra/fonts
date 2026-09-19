@@ -134,7 +134,7 @@ not an isolated face with no sibling). The current, complete decision — includ
 alone still isn't enough (real Safari 18.7 performs no automatic mapping at all) and the required
 use-site pattern — is `font-style: oblique 11deg` + explicit `font-variation-settings: 'slnt' -11`,
 documented in full with real-device confirmation on `/compat` (`oblique-range-combo`, the RECOMMENDED
-row) and `docs/manual.json`. Don't take the paragraphs below as current guidance for what to ship or
+row) and `results/manual.json`. Don't take the paragraphs below as current guidance for what to ship or
 write.
 
 **Consumers must set `font-variation-settings: 'slnt' -11` explicitly at the use site for italic

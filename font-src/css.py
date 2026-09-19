@@ -13,7 +13,7 @@ font.css declared one with `font-variation-settings: 'slnt' -11` as a
 descriptor, which is measured dead in WebKit/Safari - see CAIRO_ITALIC_NOTE
 below. Cairo's italic ships as a real @font-face declaring its true slnt
 range instead; callers must still set the axis explicitly at the use site
-(confirmed by real-device testing, not assumed - docs/manual.json, /compat).
+(confirmed by real-device testing, not assumed - results/manual.json, /compat).
 """
 
 import json
@@ -104,7 +104,7 @@ CAIRO_ITALIC_NOTE = """/* Cairo italic. The font has no italic masters - "italic
       settings value always wins over whatever the automatic mapping would
       or wouldn't do, so the combo is correct regardless of which half a
       given engine honours. Confirmed by hand on real Safari 18.7 AND
-      27.0 - see docs/manual.json and /compat.
+      27.0 - see results/manual.json and /compat.
 
    The bare `oblique` keyword this file used to ship remains correct too,
    against a face with no declared range - but requires no use-site angle

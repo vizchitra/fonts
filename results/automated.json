@@ -1,0 +1,74 @@
+{
+	"playwright_versions": {
+		"chromium": "153.0.8010.12",
+		"firefox": "155.0",
+		"webkit": "26.6"
+	},
+	"cells": {
+		"fvs-anywhere-B": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"fvs-descriptor": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": false
+		},
+		"fvs-use-site": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"italic-vs-range": {
+			"chromium": false,
+			"firefox": true,
+			"webkit": false
+		},
+		"oblique-angle": {
+			"chromium": false,
+			"firefox": true,
+			"webkit": false
+		},
+		"oblique-bare": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"oblique-explicit": {
+			"chromium": false,
+			"firefox": true,
+			"webkit": false
+		},
+		"oblique-range": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"oblique-range-angle": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"oblique-range-combo": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"recommended": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"synthesis": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		},
+		"upright-control": {
+			"chromium": true,
+			"firefox": true,
+			"webkit": true
+		}
+	}
+}

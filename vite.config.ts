@@ -13,10 +13,8 @@ const generated = [
 	'src/lib/styles/fonts.css',
 	'static/fonts/**',
 	'font-src/upstream/**',
-	// Written by scripts/compat-matrix-reporter.mjs and
-	// scripts/browser-versions.mjs on every `pnpm test` — see /compat.
-	'src/lib/fonts/compat-matrix.generated.json',
-	'src/lib/fonts/browser-versions.generated.json'
+	// Written by scripts/compat-matrix-reporter.mjs on every full `pnpm test`.
+	'results/automated.json'
 ];
 
 // The SvelteKit plugin installs a dev-server hook that is incompatible with the
@@ -75,8 +73,7 @@ export default defineConfig({
 	test: {
 		expect: { requireAssertions: true },
 		// Collects src/lib/fonts/slant.browser.test.ts's tagMatrix() calls into
-		// src/lib/fonts/compat-matrix.generated.json — see the reporter's own
-		// header comment and /compat.
+		// results/automated.json — see the reporter's own header comment.
 		reporters: ['default', new CompatMatrixReporter()],
 		projects: [
 			{
