@@ -1,5 +1,6 @@
 import { page } from 'vite-plus/test/browser/context';
 import { beforeAll, describe, expect, test } from 'vite-plus/test';
+import { tagMatrix } from './matrix-tag';
 
 /**
  * Cairo has no italic masters — its italic IS the `slnt` axis — so every way of
@@ -199,23 +200,30 @@ function shearOfNested(ancestorCss: string, css: string): Promise<number> {
 	return shearOfEl(el, el.parentElement as HTMLElement);
 }
 
+// `matrixId`, where present, is the matching src/routes/compat/+page.svelte
+// SLANT_TESTS id this technique backs — tagged onto the test below so
+// scripts/compat-matrix-reporter.mjs can pick up its verdict. Omitted for
+// entries with no corresponding displayed row (e.g. preliminary controls).
 const TECHNIQUES = [
 	{
 		label: 'font-variation-settings at the use site',
 		css: "font-family: 'CairoUpright'; font-variation-settings: 'slnt' -11;",
 		worksIn: ALL,
+		matrixId: 'fvs-use-site',
 		note: 'The baseline. What the Retalics Lab does. Works everywhere.'
 	},
 	{
 		label: 'font-style: italic against a bare `oblique` face',
 		css: "font-family: 'CairoOblique'; font-style: italic;",
 		worksIn: ALL,
+		matrixId: 'oblique-range',
 		note: 'What fonts.css shipped BEFORE the migration to a declared range - now historical. Correct in all three engines, but real Safari 18.7 does not do it at all (docs/compat.md) - Playwright cannot reproduce that gap.'
 	},
 	{
 		label: 'font-style: oblique (bare, no angle) against a bare `oblique` face',
 		css: "font-family: 'CairoOblique'; font-style: oblique;",
 		worksIn: ALL,
+		matrixId: 'oblique-bare',
 		note:
 			"CSS Fonts 4's font-style-matching algorithm treats this as an exact match against the " +
 			"face's own font-style: oblique descriptor, with no italic-to-oblique fallback step in " +
@@ -226,6 +234,7 @@ const TECHNIQUES = [
 		label: 'font-style: oblique 11deg at the use site on a normal face',
 		css: "font-family: 'CairoUpright'; font-style: oblique 11deg;",
 		worksIn: ['firefox'],
+		matrixId: null,
 		note: 'Firefox maps the angle onto slnt; Chromium and WebKit ignore it entirely. Do not use.'
 	},
 	{
@@ -233,6 +242,7 @@ const TECHNIQUES = [
 			'font-style: oblique 11deg against a family with BOTH normal and BARE oblique (historical)',
 		css: "font-family: 'CairoBoth'; font-style: oblique 11deg;",
 		worksIn: ['firefox'],
+		matrixId: 'oblique-angle',
 		note:
 			"CSS Fonts 4: OpenType's slnt axis is positive counter-clockwise, CSS's oblique angle is " +
 			"positive clockwise, so `oblique 11deg` SHOULD resolve to 'slnt' -11 - the same target as " +
@@ -248,6 +258,7 @@ const TECHNIQUES = [
 		label: 'font-variation-settings as an @font-face DESCRIPTOR',
 		css: "font-family: 'CairoDescriptor';",
 		worksIn: ['chromium', 'firefox'],
+		matrixId: 'fvs-descriptor',
 		note: 'What the old hand-written font.css used — and it silently did nothing in WebKit/Safari.'
 	}
 ] as const;
@@ -261,7 +272,7 @@ describe('Cairo slant techniques', () => {
 
 	for (const t of TECHNIQUES) {
 		const supported = (t.worksIn as readonly Engine[]).includes(ENGINE);
-		test(`${t.label} ${supported ? 'slants' : 'is IGNORED'} in ${ENGINE}`, async () => {
+		test(`${t.label} ${supported ? 'slants' : 'is IGNORED'} in ${ENGINE}`, async ({ task }) => {
 			const shear = await shearOf(t.css);
 			if (supported) {
 				expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
@@ -271,10 +282,13 @@ describe('Cairo slant techniques', () => {
 				// the test fails and docs/compat.md needs updating.
 				expect(Math.abs(shear)).toBeLessThan(0.04);
 			}
+			if (t.matrixId) tagMatrix(task, t.matrixId, ENGINE, supported);
 		});
 	}
 
-	test("the BARE oblique keyword against a ranged face is mishandled, even at the font's own true bounds", async () => {
+	test("the BARE oblique keyword against a ranged face is mishandled, even at the font's own true bounds", async ({
+		task
+	}) => {
 		// The trap this whole file exists to document. `oblique -11deg 11deg`
 		// is not a mismatched or arbitrary range — it's Cairo's actual fvar
 		// slnt bounds. The trap is specifically the BARE keyword: CSS Fonts 4
@@ -292,11 +306,13 @@ describe('Cairo slant techniques', () => {
 		// BOTH this trap and real Safari 18.7's total lack of automatic
 		// mapping - see 'oblique-range-combo' on /compat for the reasoning.
 		const shear = await shearOf("font-family: 'CairoObliqueRange'; font-style: oblique;");
-		if (ENGINE === 'firefox') {
+		const pass = ENGINE === 'firefox';
+		if (pass) {
 			expect(shear).toBeCloseTo(SLANTED, 1);
 		} else {
 			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
 		}
+		tagMatrix(task, 'oblique-explicit', ENGINE, pass);
 	});
 
 	test('the oblique-range trap is neutralised by font-synthesis: weight', async () => {
@@ -322,7 +338,9 @@ describe('Cairo slant techniques', () => {
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
 	});
 
-	test('font-synthesis: weight style un-neutralises it, even under an ancestor pin', async () => {
+	test('font-synthesis: weight style un-neutralises it, even under an ancestor pin', async ({
+		task
+	}) => {
 		// /compat's trap row needs to demonstrate the danger despite sitting
 		// under html's font-synthesis: weight. Two wrong turns first, both
 		// disproved against a real browser rather than assumed: `auto` is
@@ -339,14 +357,18 @@ describe('Cairo slant techniques', () => {
 			'font-synthesis: weight;',
 			"font-family: 'CairoObliqueRange'; font-style: oblique; font-synthesis: weight style;"
 		);
-		if (ENGINE === 'firefox') {
+		const pass = ENGINE === 'firefox';
+		if (pass) {
 			expect(shear).toBeCloseTo(SLANTED, 1);
 		} else {
 			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
 		}
+		tagMatrix(task, 'oblique-explicit', ENGINE, pass);
 	});
 
-	test('stating the EXACT angle a ranged face declares resolves correctly, synthesis or not', async () => {
+	test('stating the EXACT angle a ranged face declares resolves correctly, synthesis or not', async ({
+		task
+	}) => {
 		// The trap above is triggered by the BARE keyword, not by the range
 		// itself: `font-style: oblique` with no angle implies CSS's default
 		// of 14deg (CSS Fonts 4), which is OUTSIDE this face's declared
@@ -369,9 +391,12 @@ describe('Cairo slant techniques', () => {
 			expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
 			expect(shear).toBeLessThan(SLANTED + TOLERANCE);
 		}
+		tagMatrix(task, 'oblique-range-angle', ENGINE, true);
 	});
 
-	test('italic against the ranged face fails too, but not the same way as bare oblique', async () => {
+	test('italic against the ranged face fails too, but not the same way as bare oblique', async ({
+		task
+	}) => {
 		// Completes the matrix: the last untested cell for the ranged face.
 		// Per spec (CSS Fonts 4), italic's angle is NOT 14deg like bare
 		// oblique's - it's explicitly "unspecified." So this is a DIFFERENT
@@ -392,9 +417,12 @@ describe('Cairo slant techniques', () => {
 		} else {
 			expect(shear).toBeCloseTo(Math.tan((14 * Math.PI) / 180), 1);
 		}
+		tagMatrix(task, 'italic-vs-range', ENGINE, ENGINE === 'firefox');
 	});
 
-	test('oblique 11deg PLUS explicit slnt together, against the ranged face: no interaction', async () => {
+	test('oblique 11deg PLUS explicit slnt together, against the ranged face: no interaction', async ({
+		task
+	}) => {
 		// The belt-and-suspenders migration pattern: once fonts.css eventually
 		// declares its true slnt range, pair the exact angle with an explicit
 		// slnt value the same way the CURRENT recommended row pairs bare
@@ -411,6 +439,7 @@ describe('Cairo slant techniques', () => {
 		);
 		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'oblique-range-combo', ENGINE, true);
 	});
 
 	test('asking for italic on a normal-declared face double-slants in every engine', async () => {
@@ -431,7 +460,9 @@ describe('Cairo slant techniques', () => {
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
 	});
 
-	test('oblique 11deg alone still resolves correctly with a normal sibling face present', async () => {
+	test('oblique 11deg alone still resolves correctly with a normal sibling face present', async ({
+		task
+	}) => {
 		// The face-selection bug in 'oblique 11deg against a family with BOTH
 		// normal and BARE oblique' above is specific to a BARE oblique descriptor competing with a
 		// normal sibling - ambiguous, because bare oblique declares no bounds
@@ -446,28 +477,36 @@ describe('Cairo slant techniques', () => {
 		const shear = await shearOf("font-family: 'CairoBothRanged'; font-style: oblique 11deg;");
 		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'oblique-range-angle', ENGINE, true);
 	});
 
-	test('the migration-path combo also resolves correctly with a normal sibling face present', async () => {
+	test('the migration-path combo also resolves correctly with a normal sibling face present', async ({
+		task
+	}) => {
 		const shear = await shearOf(
 			"font-family: 'CairoBothRanged'; font-style: oblique 11deg; font-variation-settings: 'slnt' -11;"
 		);
 		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
 		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'oblique-range-combo', ENGINE, true);
 	});
 
-	test('bare oblique against normal+ranged-oblique together is still the same trap', async () => {
+	test('bare oblique against normal+ranged-oblique together is still the same trap', async ({
+		task
+	}) => {
 		// The normal sibling doesn't change the bare-keyword trap either: same
 		// ~0.44 double-stack in Chromium/WebKit as the isolated ranged face
 		// (CairoObliqueRange) elsewhere in this file. Confirms the trap and
 		// the fix are both about the ANGLE, not about face-selection ambiguity
 		// - a normal sibling changes neither.
 		const shear = await shearOf("font-family: 'CairoBothRanged'; font-style: oblique;");
-		if (ENGINE === 'firefox') {
+		const pass = ENGINE === 'firefox';
+		if (pass) {
 			expect(shear).toBeCloseTo(SLANTED, 1);
 		} else {
 			expect(Math.abs(shear - SLANTED)).toBeGreaterThan(0.04);
 		}
+		tagMatrix(task, 'oblique-explicit', ENGINE, pass);
 	});
 
 	test('the font-weight PROPERTY never disturbs an explicit slnt value', async () => {

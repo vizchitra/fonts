@@ -11,7 +11,7 @@
 		"dev": "vp dev",
 		"build": "vp build",
 		"check": "svelte-kit sync && wrangler types && vp check && svelte-check --tsconfig ./tsconfig.json",
-		"test": "vp test --run",
+		"test": "vp test --run && node scripts/browser-versions.mjs",
 		"deploy": "vp build && wrangler deploy",
 		"prepare": "svelte-kit sync && wrangler types"
 	},
