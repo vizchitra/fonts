@@ -13,7 +13,7 @@
 		result,
 		type RealSafari,
 		type Verdict
-	} from '#lib/fonts/compat-results';
+	} from '../../lib/fonts/compat-results';
 
 	// Editorial verdict on the TECHNIQUE, distinct from the pass/fail Verdict
 	// data above — "is this a bug" (Verdict) vs "should you use this" (Category).
@@ -610,18 +610,17 @@
 						<td class="status-{status ?? 'blank'}">
 							{#if cell === null}
 								<span class="blank-cell">—</span>
+							{:else if 'control' in cell}
+								{@render overlapGlyph(face.family, MATRIX_COL_CSS[useSite.id])}
+								<p class="control-note">
+									trivial — nothing here requests a slant, not a meaningful test
+								</p>
 							{:else}
 								{@render overlapGlyph(
 									face.family,
 									MATRIX_COL_CSS[useSite.id] + (cell.extraCss ?? '')
 								)}
-								{#if 'control' in cell}
-									<p class="control-note">
-										trivial — nothing here requests a slant, not a meaningful test
-									</p>
-								{:else}
-									{@render verdictBadges(cell.verdict)}
-								{/if}
+								{@render verdictBadges(cell.verdict)}
 							{/if}
 						</td>
 					{/each}
