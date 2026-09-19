@@ -17,6 +17,8 @@ const OUT = fileURLToPath(
 	new URL('../src/lib/fonts/compat-matrix.generated.json', import.meta.url)
 );
 
+const ENGINES = ['chromium', 'firefox', 'webkit'];
+
 export default class CompatMatrixReporter {
 	#matrix = {};
 
@@ -30,17 +32,22 @@ export default class CompatMatrixReporter {
 		row[engine] = engine in row ? row[engine] && meta.matrixPass : meta.matrixPass;
 	}
 
-	async onTestRunEnd() {
-		const sortedIds = Object.keys(this.#matrix).sort();
-		const sorted = {};
-		for (const id of sortedIds) {
-			const row = this.#matrix[id];
-			sorted[id] = {
-				chromium: row.chromium ?? null,
-				firefox: row.firefox ?? null,
-				webkit: row.webkit ?? null
-			};
+	async onTestRunEnd(_testModules, _unhandledErrors, reason) {
+		// Only a complete, green run may overwrite the committed file: a
+		// row is only whole if all three engines reported it, and a failing
+		// test never tags, so a failed or filtered run would otherwise write
+		// a matrix that mixes fresh cells with gaps. Leave the file alone.
+		const rows = Object.entries(this.#matrix).sort(([a], [b]) => a.localeCompare(b));
+		const complete = rows.length > 0 && rows.every(([, r]) => ENGINES.every((e) => e in r));
+		if (reason !== 'passed' || !complete) {
+			console.warn(
+				'compat-matrix: partial or failed run — leaving compat-matrix.generated.json untouched'
+			);
+			return;
 		}
-		await writeFile(OUT, JSON.stringify(sorted, null, '\t') + '\n');
+		const ordered = Object.fromEntries(
+			rows.map(([id, r]) => [id, Object.fromEntries(ENGINES.map((e) => [e, r[e]]))])
+		);
+		await writeFile(OUT, JSON.stringify(ordered, null, '\t') + '\n');
 	}
 }
