@@ -531,10 +531,10 @@
 		<span
 			class="ov-control"
 			style="font-family: '{family}', var(--font-sans); font-variation-settings: 'slnt' -11;"
-			>VizChitra</span
+			>VIZChitra</span
 		>
 		<span class="ov-test" style="font-family: '{family}', var(--font-sans); {testCss}"
-			>VizChitra</span
+			>VIZChitra</span
 		>
 	</div>
 {/snippet}
@@ -678,11 +678,11 @@
 			<div class="specimen">
 				<div class="half">
 					<span class="tag">technique</span>
-					<div class="sample {t.klass}">Hamburgefonstiv</div>
+					<div class="sample {t.klass}">VIZChitra</div>
 				</div>
 				<div class="half">
 					<span class="tag">upright control</span>
-					<div class="sample">Hamburgefonstiv</div>
+					<div class="sample">VIZChitra</div>
 				</div>
 			</div>
 			<p class="expect">{t.expect}</p>
