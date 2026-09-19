@@ -736,17 +736,17 @@
 			>font-style: italic &nbsp;vs&nbsp; (ancestor: font-variation-settings: 'slnt' 0) font-style:
 			italic &nbsp;vs&nbsp; (same ancestor) font-variation-settings: 'slnt' -11</code
 		>
-		<div class="specimen">
+		<div class="specimen aligned">
 			<div class="half">
-				<span class="tag">no ancestor pin — correct only where italic is supported</span>
+				<span class="tag">no ancestor pin<br />correct only where italic is supported</span>
 				<div class="hazard-specimen">VIZCHITRA</div>
 			</div>
 			<div class="half slnt-pinned-ancestor">
-				<span class="tag">nested under a slnt-pinned ancestor — broken on purpose</span>
+				<span class="tag">nested under a slnt-pinned ancestor<br />broken on purpose</span>
 				<div class="hazard-specimen">VIZCHITRA</div>
 			</div>
 			<div class="half slnt-pinned-ancestor">
-				<span class="tag">same pinned ancestor — explicit slnt stays immune</span>
+				<span class="tag">same pinned ancestor<br />explicit slnt stays immune</span>
 				<div class="hazard-specimen-explicit">VIZCHITRA</div>
 			</div>
 		</div>
@@ -993,6 +993,15 @@
 		border-radius: var(--radius);
 		padding: 0.5rem 0.7rem;
 		overflow: hidden;
+	}
+
+	/* Each half's label and specimen become two rows of the parent grid, so
+	   the specimens line up however many lines each label wraps to. */
+	.aligned .half {
+		display: grid;
+		grid-template-rows: subgrid;
+		grid-row: span 2;
+		row-gap: 0;
 	}
 
 	/* Reproduces the exact hazard: an ancestor stating 'slnt' explicitly. This
