@@ -266,9 +266,8 @@ const TECHNIQUES = [
 describe('Cairo slant techniques', () => {
 	beforeAll(injectFaces);
 
-	test('upright Cairo has no shear — the control', async ({ task }) => {
+	test('upright Cairo has no shear — the control', async () => {
 		expect(Math.abs(await shearOf("font-family: 'CairoUpright';"))).toBeLessThan(0.04);
-		tagMatrix(task, 'upright-control', ENGINE, true);
 	});
 
 	for (const t of TECHNIQUES) {

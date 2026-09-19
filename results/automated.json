@@ -64,11 +64,6 @@
 			"chromium": true,
 			"firefox": true,
 			"webkit": true
-		},
-		"upright-control": {
-			"chromium": true,
-			"firefox": true,
-			"webkit": true
 		}
 	}
 }

@@ -240,11 +240,6 @@
 		return t.browsers;
 	}
 
-	// Trivial: nothing requests a slant, so every family should stay upright,
-	// on every engine and version. Included for completeness, not because it's
-	// interesting on its own.
-	const UPRIGHT_CONTROL: Verdict = result('upright-control');
-
 	// Mechanism-based, like fvs-use-site: an explicit same-element slnt value
 	// always wins regardless of what the face's own font-style descriptor is
 	// doing, so this is true independent of the descriptor being tested.
@@ -289,7 +284,10 @@
 		combo: "font-style: oblique 11deg; font-variation-settings: 'slnt' -11;"
 	};
 
-	type MatrixCell = { verdict: Verdict; extraCss?: string } | null;
+	// `control`: the "(nothing set)" column — nothing requests a slant, so it is
+	// trivially upright everywhere. Shown as a glyph and a note, never measured
+	// or listed in results/*.json.
+	type MatrixCell = { verdict: Verdict; extraCss?: string } | { control: true } | null;
 
 	const MATRIX_ROWS: {
 		id: string;
@@ -307,7 +305,7 @@
 			// file this site (and every consumer) actually loads.
 			family: 'Cairo',
 			cells: {
-				none: { verdict: UPRIGHT_CONTROL },
+				none: { control: true },
 				// This site's own app.css sets font-synthesis: weight globally,
 				// which neutralises the trap by accident (docs/compat.md, "the
 				// oblique-range trap is neutralised by font-synthesis: weight").
@@ -340,7 +338,7 @@
 			// face this way yourself" hazard reference for oblique-angle below.
 			family: 'CairoBareTest',
 			cells: {
-				none: { verdict: UPRIGHT_CONTROL },
+				none: { control: true },
 				italic: { verdict: find('oblique-range') },
 				oblique: { verdict: find('oblique-bare') },
 				obliqueAngle: { verdict: find('oblique-angle') },
@@ -353,19 +351,12 @@
 		}
 	];
 
-	// 'control' is a property of the COLUMN (the "(nothing set)" column is
-	// always the trivial upright case), not something inferrable from the
-	// Verdict shape alone — pass the column id in explicitly rather than
-	// guessing from which fields happen to be true.
 	function matrixStatus(
-		v: Verdict | null
+		cell: MatrixCell
 	): 'control' | 'pass' | 'version-dependent' | 'broken' | null {
-		if (v === null) return null;
-		// Reference equality on purpose: UPRIGHT_CONTROL marks the trivial
-		// "nothing should happen" cells specifically. Row 3's own "(nothing
-		// set)" cell is a real, meaningful test (find('fvs-descriptor')), not
-		// this constant, and must be classified normally, not shortcut here.
-		if (v === UPRIGHT_CONTROL) return 'control';
+		if (cell === null) return null;
+		if ('control' in cell) return 'control';
+		const v = cell.verdict;
 		const automatedPass = v.chromium && v.firefox && v.webkit;
 		const realFail = (v.safariOld && !v.safariOld.pass) || (v.safariNew && !v.safariNew.pass);
 		const realPassOrUnknown =
@@ -586,7 +577,7 @@
 					</th>
 					{#each MATRIX_ROWS as face (face.id)}
 						{@const cell = face.cells[useSite.id]}
-						{@const status = matrixStatus(cell?.verdict ?? null)}
+						{@const status = matrixStatus(cell)}
 						<td class="status-{status ?? 'blank'}">
 							{#if cell === null}
 								<span class="blank-cell">—</span>
@@ -595,7 +586,7 @@
 									face.family,
 									MATRIX_COL_CSS[useSite.id] + (cell.extraCss ?? '')
 								)}
-								{#if status === 'control'}
+								{#if 'control' in cell}
 									<p class="control-note">
 										trivial — nothing here requests a slant, not a meaningful test
 									</p>
