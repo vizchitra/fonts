@@ -442,6 +442,51 @@ describe('Cairo slant techniques', () => {
 		tagMatrix(task, 'oblique-range-combo', ENGINE, true);
 	});
 
+	test('bare oblique PLUS explicit slnt against a bare-oblique face: correct, both halves cover each other', async ({
+		task
+	}) => {
+		// The 'recommended' row on /compat: what fonts.css shipped before the
+		// migration to a declared range, and still valid for any face with no
+		// declared range. font-style: oblique asks for the mapping; the
+		// element's own explicit slnt wins over it either way.
+		const shear = await shearOf(
+			"font-family: 'CairoOblique'; font-style: oblique; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'recommended', ENGINE, true);
+	});
+
+	test('an explicit slnt at the use site works against the RANGED face too, no font-style at all', async ({
+		task
+	}) => {
+		// /compat's 'fvs-anywhere-B' cell: mechanism-based — an explicit
+		// same-element slnt wins regardless of what the face's own font-style
+		// descriptor is doing, so it must not matter that this face declares
+		// a range. Measured here rather than assumed from the mechanism.
+		const shear = await shearOf(
+			"font-family: 'CairoObliqueRange'; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'fvs-anywhere-B', ENGINE, true);
+	});
+
+	test('italic PLUS slnt against the shipped-shape family under font-synthesis: weight leans once, not twice', async ({
+		task
+	}) => {
+		// /compat's 'synthesis' row, on the shape fonts.css actually ships
+		// (normal + ranged oblique together) and under the site's own global
+		// font-synthesis: weight (app.css). Should match the recommended
+		// row's lean, not stack a synthesised skew on top of it.
+		const shear = await shearOf(
+			"font-family: 'CairoBothRanged'; font-style: italic; font-synthesis: weight; font-variation-settings: 'slnt' -11;"
+		);
+		expect(shear).toBeGreaterThan(SLANTED - TOLERANCE);
+		expect(shear).toBeLessThan(SLANTED + TOLERANCE);
+		tagMatrix(task, 'synthesis', ENGINE, true);
+	});
+
 	test('asking for italic on a normal-declared face double-slants in every engine', async () => {
 		// font-style: italic on a family with no italic face makes the engine
 		// synthesise a skew, which then stacks on top of the real axis: ~0.44

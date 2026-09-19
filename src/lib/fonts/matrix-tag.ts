@@ -5,7 +5,7 @@
  * boolean the test's own expect() is checking — this does not change what
  * the test asserts, it just records that verdict as machine-readable
  * metadata. scripts/compat-matrix-reporter.mjs reads `task.meta` off every
- * test case and writes src/lib/fonts/compat-matrix.generated.json from it,
+ * test case and writes results/automated.json from it,
  * so the page reads real test results instead of a hand-copied boolean.
  *
  * Some SLANT_TESTS ids are backed by more than one test (e.g. a technique
