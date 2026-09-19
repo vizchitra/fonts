@@ -32,16 +32,20 @@ export default class CompatMatrixReporter {
 		row[engine] = engine in row ? row[engine] && meta.matrixPass : meta.matrixPass;
 	}
 
-	async onTestRunEnd(_testModules, _unhandledErrors, reason) {
+	async onTestRunEnd(testModules, _unhandledErrors, reason) {
 		// Only a complete, green run may overwrite the committed file: a
 		// row is only whole if all three engines reported it, and a failing
 		// test never tags, so a failed or filtered run would otherwise write
-		// a matrix that mixes fresh cells with gaps. Leave the file alone.
+		// a matrix that mixes fresh cells with gaps. A -t filter (or a stray
+		// .skip/.only) marks the other tests skipped, and an id backed by
+		// several tests would then be ANDed over only some of them. Leave
+		// the file alone in all of those cases.
 		const rows = Object.entries(this.#matrix).sort(([a], [b]) => a.localeCompare(b));
 		const complete = rows.length > 0 && rows.every(([, r]) => ENGINES.every((e) => e in r));
-		if (reason !== 'passed' || !complete) {
+		const skipped = testModules.some((m) => m.children.allTests('skipped').next().done === false);
+		if (reason !== 'passed' || skipped || !complete) {
 			console.warn(
-				'compat-matrix: partial or failed run — leaving compat-matrix.generated.json untouched'
+				'compat-matrix: partial, filtered or failed run — leaving compat-matrix.generated.json untouched'
 			);
 			return;
 		}
