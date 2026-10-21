@@ -16,16 +16,16 @@
 		"prepare": "svelte-kit sync && wrangler types"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-cloudflare": "^8.0.0-next.6",
-		"@sveltejs/kit": "^3.0.0-next.0",
-		"@types/node": "^26.5.1",
-		"playwright": "1.63.0",
-		"svelte": "^5.56.7",
-		"svelte-check": "^4.6.0",
+		"@sveltejs/adapter-cloudflare": "^8.0.1",
+		"@sveltejs/kit": "^3.1.0",
+		"@types/node": "^26.6.5",
+		"playwright": "1.64.1",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.7.7",
 		"typescript": "^6.0.3",
 		"vite": "npm:@voidzero-dev/vite-plus-core@0.3.2",
 		"vite-plus": "0.3.2",
-		"wrangler": "^4.131.2"
+		"wrangler": "^4.151.1"
 	},
 	"engines": {
 		"node": ">=24"
